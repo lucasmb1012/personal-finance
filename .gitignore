@@ -1,0 +1,12 @@
+# Python bytecode and tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local virtual environments and configuration
+.venv/
+.env
+.env.*
+
+# Local source data; never commit financial records.
+data/
