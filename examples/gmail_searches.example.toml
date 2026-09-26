@@ -1,0 +1,7 @@
+# Fictional example of the local Gmail search configuration.
+# Copy this file to secrets/gmail_searches.toml (ignored by Git) and replace
+# the values with your own Gmail search queries. Never commit the real file.
+
+[searches]
+credit_card_purchase = 'from:alerts@bank.example subject:"Card purchase"'
+debit_card_purchase = 'from:alerts@bank.example subject:"Debit purchase"'

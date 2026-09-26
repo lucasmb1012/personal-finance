@@ -19,10 +19,10 @@ The operator runs the OAuth consent flow on their own machine for their own acco
 | Threat | Safeguard | Status |
 | --- | --- | --- |
 | Secrets or tokens are committed. | Store them under `secrets/` or outside the checkout; review staged files before every commit. Ignore rules are defense in depth only. | In place |
-| Another local user or process reads the token. | Write the token file with owner-only permissions (`0600`). | Planned |
+| Another local user or process reads the token. | Write the token file with owner-only permissions (`0600`). | In place |
 | Access is broader than needed. | Request only the `gmail.readonly` scope; never send, modify, or delete mail. | In place |
 | Real email content enters the repository through fixtures, tests, logs, or documentation. | Synthetic fixtures only, never redacted copies; search returns message IDs without fetching bodies. | In place |
-| Public artifacts reveal where the operator holds accounts. | Generic documentation; provider-specific details kept out of public artifacts. | Documentation in place; code pending |
+| Public artifacts reveal where the operator holds accounts. | Generic documentation; search queries load from an ignored local file under `secrets/`, and the repository ships only a fictional example. | In place |
 | A token is leaked or stolen. | Revoke the app's access in the Google account, delete the local token, and follow [SECURITY.md](../SECURITY.md). | Documented |
 
 ## Accepted risks
@@ -32,5 +32,3 @@ The operator runs the OAuth consent flow on their own machine for their own acco
 ## Open items
 
 - A retention policy for email content.
-- Owner-only permissions for the token file.
-- Keeping provider-specific search details out of committed code.

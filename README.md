@@ -10,7 +10,7 @@ The repository is public by design. Real data stays on the operator's machine or
 
 ## Current stage
 
-**Stage 0 — foundation.** The Python package is scaffolded and no ingestion, storage, integrations, or financial logic has been implemented yet. The delivery roadmap lives in [docs/ROADMAP.md](docs/ROADMAP.md).
+**Stage 0 — foundation, with early Stage 2 work.** A read-only Gmail adapter authenticates locally and lists the IDs of notification emails that match locally configured searches. No parsing, storage, or financial logic has been implemented yet. The delivery roadmap lives in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Operating principles
 
@@ -27,6 +27,7 @@ The repository is public by design. Real data stays on the operator's machine or
 | Language | Python 3.13+ | A strong fit for data processing and the project's existing foundation. |
 | Package/dependency tooling | `uv` | Fast, reproducible environments and lockfiles. |
 | Tests | Standard-library `unittest` initially | No extra dependency is needed for the current scope. Revisit when needs justify it. |
+| Email access | Google's Gmail API and OAuth client libraries, read-only scope | Official, maintained libraries; least-privilege access to the mailbox. |
 | Data boundary | Local files outside Git; synthetic committed fixtures only | Preserves public portfolio value without exposing private records. |
 | Architecture | Evolve from validated use cases | Avoids committing early to a database, cloud provider, or framework. |
 
