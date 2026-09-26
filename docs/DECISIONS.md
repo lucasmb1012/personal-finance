@@ -26,6 +26,14 @@ This log records decisions that are expensive to reverse, affect privacy, or sha
 
 **Consequences:** Access to sensitive local data requires explicit operator direction. Public artifacts continue to use only fictional fixtures.
 
+## 2026-09-25 — Gmail read-only client libraries
+
+**Decision:** Use Google's Python OAuth and Gmail API client libraries for the Gmail adapter.
+
+**Rationale:** They are Google's official, maintained libraries for OAuth and the Gmail API, and the authentication flow has been validated locally with them. Gmail access is required for transaction notification discovery.
+
+**Consequences:** OAuth client secrets and tokens must be stored under `secrets/` or outside the checkout; `.gitignore` matches `credentials.json` and `token.json` by name only. The token file is written with owner-only permissions. The adapter requests the Gmail read-only scope.
+
 ## 2026-09-25 — Prioritize email notification ingestion
 
 **Decision:** Move email notification ingestion ahead of spreadsheet ingestion in the roadmap.
@@ -40,4 +48,4 @@ This log records decisions that are expensive to reverse, affect privacy, or sha
 
 **Rationale:** Combined with the owner's public identity, institution names reveal where the operator holds accounts.
 
-**Consequences:** Documentation uses generic guidelines. Provider-specific details must not be committed.
+**Consequences:** Documentation uses generic guidelines. Provider-specific details must not be committed: Gmail search queries load from `secrets/gmail_searches.toml`, and the repository ships only a fictional example in `examples/`.
