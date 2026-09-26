@@ -2,11 +2,28 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Local virtual environments and configuration
 .venv/
 .env
 .env.*
+!.env.example
 
-# Local source data; never commit financial records.
+# Private financial inputs and local outputs. Never force-add these files.
 data/
+private/
+secrets/
+exports/
+backups/
+*.ofx
+*.qfx
+*.qif
+*.xls
+*.xlsx
+*.xlsm
+credentials.json
+token.json
