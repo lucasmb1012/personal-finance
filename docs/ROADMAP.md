@@ -14,26 +14,26 @@ The roadmap is intentionally stage-based. A stage is complete only when its exit
 
 **Exit criteria:** documented invariants; synthetic fixtures; parsing-independent unit tests; explicit treatment of transfers, duplicates, and invalid values.
 
-## Stage 2 — Local spreadsheet ingestion
+## Stage 2 — Email notification ingestion
+
+**Goal:** Discover and parse card-transaction notification emails from the operator's mailbox with read-only access.
+
+**Exit criteria:** a reviewed [threat model](THREAT_MODEL.md); explicit consent flow; least-privilege access; secure credential handling; a documented retention policy for email content; provider-specific details kept out of public artifacts; parsing tests using only synthetic notifications.
+
+## Stage 3 — Local spreadsheet ingestion
 
 **Goal:** Import one well-defined spreadsheet format from a local ignored directory.
 
 **Exit criteria:** schema validation, actionable import errors, idempotent behavior, provenance metadata, and tests using only synthetic files.
 
-## Stage 3 — Storage and query workflow
+## Stage 4 — Storage and query workflow
 
 **Goal:** Persist validated records locally and provide repeatable queries.
 
 **Exit criteria:** a documented storage decision, migrations or versioning strategy, reproducible local setup, and backup/retention guidance.
 
-## Stage 4 — Reports and analysis
+## Stage 5 — Reports and analysis
 
 **Goal:** Produce useful, explainable summaries such as cash flow, category trends, and reconciliation checks.
 
 **Exit criteria:** outputs are reproducible from synthetic data; calculation assumptions are documented; tests cover key financial edge cases.
-
-## Stage 5 — Email-derived ingestion (optional)
-
-**Goal:** Evaluate and, only if justified, ingest narrowly scoped financial records from email.
-
-**Exit criteria:** explicit consent flow, least-privilege access, a retention policy, secure credential handling, and a threat-model review before implementation.

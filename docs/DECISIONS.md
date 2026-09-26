@@ -17,3 +17,27 @@ This log records decisions that are expensive to reverse, affect privacy, or sha
 **Rationale:** The project is at foundation stage; early infrastructure choices would be speculative.
 
 **Consequences:** The early delivery stages focus on a clean domain model, file ingestion, validation, and tests.
+
+## 2026-09-25 — Explicit local processing of real financial data
+
+**Decision:** Real financial data may be processed locally when the operator explicitly requests it and the task requires it. It must never enter the repository: version control, code, tests, fixtures, documentation, issues, or pull requests.
+
+**Rationale:** The application needs to operate on the operator's financial records, while the public repository must remain free of sensitive data.
+
+**Consequences:** Access to sensitive local data requires explicit operator direction. Public artifacts continue to use only fictional fixtures.
+
+## 2026-09-25 — Prioritize email notification ingestion
+
+**Decision:** Move email notification ingestion ahead of spreadsheet ingestion in the roadmap.
+
+**Rationale:** Card-transaction notification emails are the primary source of records.
+
+**Consequences:** The email stage keeps its original safeguards: a threat model ([THREAT_MODEL.md](THREAT_MODEL.md)), least-privilege access, a retention policy, and secure credential handling are exit criteria.
+
+## 2026-09-25 — Keep financial institutions out of public artifacts
+
+**Decision:** Public artifacts describe financial sources generically and do not name the operator's banks, card products, or similar details.
+
+**Rationale:** Combined with the owner's public identity, institution names reveal where the operator holds accounts.
+
+**Consequences:** Documentation uses generic guidelines. Provider-specific details must not be committed.

@@ -32,6 +32,6 @@ Read [docs/DATA_POLICY.md](docs/DATA_POLICY.md) and [docs/GIT.md](docs/GIT.md) b
 
 ## Pull-request standard
 
-A pull request should be small enough to review, have a clear purpose, include test evidence, and describe its data/privacy impact. A change must not merge when its data origin is unclear, it introduces an unreviewed dependency or service, it lacks appropriate tests, or its CI checks fail.
+A pull request should be small enough to review, have a clear purpose, include test evidence, and describe its data/privacy impact. A change must not merge when its data origin is unclear, it introduces an unreviewed dependency or service, it lacks appropriate tests, or its checks fail. CI is not configured yet: run the checks above locally and record the results in the pull request.
 
-The repository owner is the required reviewer while the project is maintained by one person. If GitHub branch protection is enabled, configure `main` to require a passing status check and a pull request before merge. GitHub may not permit self-approval on a personal repository; in that case, use the PR as an auditable review record and merge only after completing the template.
+The repository owner is the required reviewer while the project is maintained by one person. Once CI exists and GitHub branch protection is enabled, configure `main` to require a passing status check and a pull request before merge. GitHub may not permit self-approval on a personal repository; in that case, use the PR as an auditable review record and merge only after completing the template.

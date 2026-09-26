@@ -4,7 +4,9 @@ These rules apply to Codex and every automated coding agent working in this repo
 
 ## Non-negotiable data boundary
 
-- Never read, print, commit, upload, summarize, or transform real financial records, credentials, personal identifiers, emails, tokens, or exports.
+- Real financial records, credentials, personal identifiers, emails, tokens, and exports must never enter the repository: not in version control, code, tests, fixtures, documentation, commit messages, issues, or pull requests.
+- Real financial data may be read and processed locally only when the user explicitly requests it and the task requires it.
+- Keep public artifacts generic. Do not name the operator's financial institutions, card products, or other details that reveal where the operator holds accounts.
 - Treat local `data/`, `private/`, `secrets/`, `.env*`, and files ignored by Git as sensitive. Do not inspect them unless the user explicitly asks and the action is necessary.
 - Use synthetic, clearly fictional fixtures for tests and examples. A fixture must not be a redacted copy of a real record.
 - Before staging changes, run `git diff --cached --check` and inspect `git diff --cached --name-only`.

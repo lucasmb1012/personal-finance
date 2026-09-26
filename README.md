@@ -4,7 +4,7 @@
 
 ## Project brief
 
-The project will turn personally owned financial exports into a local, inspectable data model and useful reports. Initial source formats are spreadsheets and email-derived records. The intended outcome is a repeatable workflow for ingesting data, validating it, and producing analysis without turning private records into repository assets.
+The project will turn personally owned financial exports into a local, inspectable data model and useful reports. The primary source is card-transaction notification email; spreadsheet exports follow. The intended outcome is a repeatable workflow for ingesting data, validating it, and producing analysis without turning private records into repository assets.
 
 The repository is public by design. Real data stays on the operator's machine or in explicitly approved private services; only synthetic fixtures may be committed.
 
@@ -49,6 +49,7 @@ Do not place real exports, statements, credentials, or copied emails in this che
 - [Git field guide](docs/GIT.md): safe commands to inspect, understand, and recover work.
 - [Roadmap](docs/ROADMAP.md): staged delivery plan and exit criteria.
 - [Data policy](docs/DATA_POLICY.md): non-negotiable privacy rules.
+- [Threat model](docs/THREAT_MODEL.md): risks and safeguards for email ingestion.
 - [Security policy](SECURITY.md): how to report a suspected disclosure.
 - [Agent instructions](AGENTS.md): repository rules for Codex and other coding agents.
 
