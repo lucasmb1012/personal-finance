@@ -14,11 +14,11 @@ The roadmap is intentionally stage-based. A stage is complete only when its exit
 
 **Exit criteria:** documented invariants; synthetic fixtures; parsing-independent unit tests; explicit treatment of transfers, duplicates, and invalid values.
 
-## Stage 2 — Email notification ingestion
+## Stage 2 — Email notification and statement ingestion
 
-**Goal:** Discover and parse card-transaction notification emails from the operator's mailbox with read-only access.
+**Goal:** Discover and parse card-transaction notification emails from the operator's mailbox with read-only access, and parse the monthly statements that arrive as email attachments for backfill and reconciliation.
 
-**Exit criteria:** a reviewed [threat model](THREAT_MODEL.md); explicit consent flow; least-privilege access; secure credential handling; a documented retention policy for email content; provider-specific details kept out of public artifacts; parsing tests using only synthetic notifications.
+**Exit criteria:** a reviewed [threat model](THREAT_MODEL.md); explicit consent flow; least-privilege access; secure credential handling; a documented retention policy for email content; provider-specific details kept out of public artifacts; parsing tests using only synthetic notifications and statements; statement parsing verified by reconciliation checks.
 
 ## Stage 3 — Local spreadsheet ingestion
 

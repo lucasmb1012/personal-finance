@@ -1,13 +1,13 @@
 # Transaction Cases
 
-These guidelines describe how transactions discovered from bank notification emails are recorded. Public documentation stays generic: financial institutions are referred to by pseudonyms (Bank A, Bank B), card products are not named, and notification wording is described rather than quoted (see [DATA_POLICY.md](DATA_POLICY.md)).
+These guidelines describe how transactions discovered from bank notification emails and account statements are recorded. Public documentation stays generic: financial institutions are referred to by pseudonyms (Bank A, Bank B), card products are not named, and notification wording is described rather than quoted (see [DATA_POLICY.md](DATA_POLICY.md)).
 
 ## Sources
 
 | Source | Status |
 | --- | --- |
 | Bank A notification emails | Surveyed on 2026-09-26 |
-| Bank A account statements | Pending |
+| Bank A account statements | Surveyed on 2026-09-26 |
 | Bank B | Pending |
 
 ## Payment instruments
@@ -40,9 +40,42 @@ Other messages from the same sender (statements, loan notices, security notices)
 
 ## Reversals
 
-Bank A does not send notifications for reversals. Reversals, installments, fees, and interest are expected to come only from account statements.
+Bank A does not send notifications for reversals. Reversals, installments, fees, and interest come only from account statements.
 
 When a credit-card reversal is recorded, it is kept as a separate transaction and does not delete or overwrite the original charge. Debit reversals are not yet documented.
+
+## Bank A account statements
+
+Statements arrive monthly as PDF attachments from the same sender as the notifications. Every file is protected with a short numeric password derived from a personal identifier.
+
+| Statement | Frequency | Use |
+| --- | --- | --- |
+| Checking account | Monthly | Every account movement, with balances |
+| Credit card | Monthly, one per card | Purchases, installments, payments, fees, taxes |
+| Credit line interest settlement | Monthly | Explains the interest and tax charged to the account |
+| Consumer loan installment notice | Monthly | Explains the loan installment charged to the account |
+
+The first two are sources of transactions. The other two explain charges that already appear on the checking account statement and are not parsed yet.
+
+### Checking account statement
+
+- A table with date, description, branch, document, debit, credit, and balance columns. Debits and credits are only distinguishable by their horizontal position.
+- Dates have a day and month but no year. A statement period can cross a year boundary, so the year is inferred from the period end.
+- The balance is stated only on the last row of each day, and the statement states opening and closing balances. Replaying the rows reproduced every stated balance in the surveyed samples, and each closing balance equals the next statement's opening balance.
+- Descriptions are truncated. Transfers include the counterparty's name, which is personal data about third parties.
+
+### Credit card statement
+
+- One statement per card and billing period. A statement can list several cards, each with its own subtotal. A replaced card continues on a new number.
+- Entries are grouped into sections (payments, single-installment purchases, installment purchases, voluntary products, fees and taxes), each ending with a stated total. The amount due equals the previous amount due plus every section total; this held in all samples.
+- **Installments:** each installment entry carries the original purchase date, the original amount, the total with interest, the installment number and count (for example, 3 of 6), the installment amount, and the interest rate.
+- An informational section lists new installment purchases whose first installment is billed next period (installment 0 of n). These entries are not billed and are excluded from the totals. In one sample its stated total omitted an interest-bearing purchase, so that total is not checked.
+- Fees and a stamp tax per installment purchase appear only on statements.
+- **Foreign purchases:** when there is foreign activity, the same file contains a second part in US dollars. Each entry carries the amount in the original currency, the amount in US dollars, a city, and a two-letter country code. The original currency itself is not named.
+
+### Cross-document reconciliation
+
+The card payment debited from the checking account equals the card statement's amount due, and the loan installment debited from the account equals the installment notice's total. These links let one document confirm another.
 
 ## Authenticity
 

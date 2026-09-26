@@ -1,0 +1,77 @@
+# Fictional example of the local statement profile configuration.
+# Copy this file to secrets/statement_profiles.toml (ignored by Git) and replace
+# the profiles with your institutions' layouts. Never commit the real file.
+#
+# Patterns are Python regular expressions matched against one text line, with
+# the line's words joined by single spaces. Use literal (single-quoted) strings.
+
+# An account statement laid out as a table. Each word is assigned to the first
+# column whose range contains the chosen edge of the word: "x0" (left) for
+# left-aligned text, "x1" (right) for right-aligned amounts. Positions are in
+# PDF points from the left edge of the page.
+[profiles.example_checking]
+engine = "column_table"
+detect = '^EXAMPLE BANK CHECKING STATEMENT$'
+amount_format = { thousands = ",", decimal = "." }
+header = '^DATE DESCRIPTION'
+footer = '^END OF PAGE'
+row_start = '^\d\d/\d\d$'
+date_format = "%d/%m"
+period = 'FROM (?P<start>\d\d/\d\d/\d{4}) TO (?P<end>\d\d/\d\d/\d{4})'
+period_date_format = "%d/%m/%Y"
+opening_balance = '^OPENING BALANCE$'
+closing_balance = '^CLOSING BALANCE$'
+columns = [
+    { name = "date", anchor = "x0", min = 0, max = 60 },
+    { name = "description", anchor = "x0", min = 60, max = 300 },
+    { name = "reference", anchor = "x0", min = 300, max = 360 },
+    { name = "debit", anchor = "x1", min = 360, max = 440 },
+    { name = "credit", anchor = "x1", min = 440, max = 520 },
+    { name = "balance", anchor = "x1", min = 520, max = 600 },
+]
+
+# A card statement whose entries are single lines. Totals are checked against
+# the billed entries since the previous total; a subtotal is checked against
+# the entries since the previous subtotal or total. Entries in unbilled
+# sections are informational. The grand total is the sum of every non-subtotal
+# total plus the listed values.
+[profiles.example_card]
+engine = "line_patterns"
+detect = '^EXAMPLE BANK CARD STATEMENT$'
+
+[[profiles.example_card.parts]]
+name = "domestic"
+currency = "EUR"
+start = '^EXAMPLE BANK CARD STATEMENT$'
+amount_format = { thousands = ",", decimal = "." }
+entry_patterns = [
+    '^(?P<date>\d\d/\d\d/\d\d) (?P<description>.+?) (?P<amount>-?[\d,]+\.\d\d) (?P<installment>\d\d)/(?P<installments>\d\d) (?P<billed>-?[\d,]+\.\d\d)$',
+]
+amount_field = "billed"
+amount_fields = ["amount"]
+date_fields = { date = "%d/%m/%y" }
+integer_fields = ["installment", "installments"]
+sections = [
+    { name = "upcoming_installments", pattern = '^UPCOMING INSTALLMENTS$', billed = false },
+]
+totals = [
+    { pattern = '^CARD ENDING (?P<label>\d{4}) TOTAL (?P<amount>-?[\d,]+\.\d\d)$', subtotal = true },
+    { pattern = '^TOTAL (?P<label>[A-Z ]+) (?P<amount>-?[\d,]+\.\d\d)$' },
+]
+values = { previous_billed = '^PREVIOUS AMOUNT DUE (?P<amount>-?[\d,]+\.\d\d)$' }
+grand_total = { pattern = '^AMOUNT DUE (?P<amount>-?[\d,]+\.\d\d)$', plus = ["previous_billed"] }
+
+[[profiles.example_card.parts]]
+name = "foreign"
+currency = "USD"
+start = '^EXAMPLE BANK FOREIGN CARD STATEMENT$'
+amount_format = { thousands = ",", decimal = "." }
+entry_patterns = [
+    '^(?P<date>\d\d/\d\d/\d\d) (?P<description>.+) (?P<country>[A-Z]{2}) (?P<original_amount>[\d,]+\.\d\d) (?P<amount>-?[\d,]+\.\d\d)$',
+]
+amount_field = "amount"
+amount_fields = ["original_amount"]
+date_fields = { date = "%d/%m/%y" }
+totals = [
+    { pattern = '^FOREIGN TOTAL (?P<amount>-?[\d,]+\.\d\d)$' },
+]

@@ -4,13 +4,13 @@
 
 ## Project brief
 
-The project will turn personally owned financial exports into a local, inspectable data model and useful reports. The primary source is card-transaction notification email; spreadsheet exports follow. The intended outcome is a repeatable workflow for ingesting data, validating it, and producing analysis without turning private records into repository assets.
+The project will turn personally owned financial exports into a local, inspectable data model and useful reports. The primary sources are card-transaction notification emails and the monthly statements that arrive as email attachments; spreadsheet exports follow. The intended outcome is a repeatable workflow for ingesting data, validating it, and producing analysis without turning private records into repository assets.
 
 The repository is public by design. Real data stays on the operator's machine or in explicitly approved private services; only synthetic fixtures may be committed.
 
 ## Current stage
 
-**Stage 0 — foundation, with early Stage 2 work.** A read-only Gmail adapter authenticates locally and lists the IDs of notification emails that match locally configured searches. No parsing, storage, or financial logic has been implemented yet. The delivery roadmap lives in [docs/ROADMAP.md](docs/ROADMAP.md).
+**Stage 0 — foundation, with early Stage 2 work.** A read-only Gmail adapter authenticates locally and lists the IDs of notification emails that match locally configured searches. A statement parser reads PDF statements with generic engines driven by local profiles and checks every result against the balances and totals the statement states. Nothing is stored yet, and the transaction model is not defined. The delivery roadmap lives in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Operating principles
 
@@ -28,6 +28,7 @@ The repository is public by design. Real data stays on the operator's machine or
 | Package/dependency tooling | `uv` | Fast, reproducible environments and lockfiles. |
 | Tests | Standard-library `unittest` initially | No extra dependency is needed for the current scope. Revisit when needs justify it. |
 | Email access | Google's Gmail API and OAuth client libraries, read-only scope | Official, maintained libraries; least-privilege access to the mailbox. |
+| Statement PDFs | `pdfplumber` | Word positions recover table columns; opens password-protected files. |
 | Data boundary | Local files outside Git; synthetic committed fixtures only | Preserves public portfolio value without exposing private records. |
 | Architecture | Evolve from validated use cases | Avoids committing early to a database, cloud provider, or framework. |
 
@@ -50,7 +51,7 @@ Do not place real exports, statements, credentials, or copied emails in this che
 - [Git field guide](docs/GIT.md): safe commands to inspect, understand, and recover work.
 - [Roadmap](docs/ROADMAP.md): staged delivery plan and exit criteria.
 - [Data policy](docs/DATA_POLICY.md): non-negotiable privacy rules.
-- [Threat model](docs/THREAT_MODEL.md): risks and safeguards for email ingestion.
+- [Threat model](docs/THREAT_MODEL.md): risks and safeguards for email and statement ingestion.
 - [Security policy](SECURITY.md): how to report a suspected disclosure.
 - [Agent instructions](AGENTS.md): repository rules for Codex and other coding agents.
 

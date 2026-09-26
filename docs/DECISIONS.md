@@ -115,3 +115,27 @@ Alternatives considered:
 - Public engine with a private companion repository: combines both benefits, but maintaining and versioning two repositories together is too much overhead at this stage.
 
 **Consequences:** The data boundary and pseudonym rules continue to apply to every public artifact. The companion repository will be reconsidered if privacy work materially slows progress, if an institution cannot be expressed as a local profile, or if deployment configuration would reveal institution details.
+
+## 2026-09-26 — pdfplumber for reading statement PDFs
+
+**Decision:** Use `pdfplumber` to read account and card statements delivered as PDF files. Only the PDF adapter (`personal_finance/statements/pdf.py`) imports it.
+
+**Rationale:** Statements are tables. In plain extracted text a debit and a credit look identical, so parsing depends on each word's position on the page, which `pdfplumber` provides. It also opens password-protected files. Alternatives considered:
+
+- `pypdf`: lighter, but it extracts text without positions, which loses the table columns.
+- `PyMuPDF`: faster, but its AGPL license is restrictive, and speed does not matter at a few files per month.
+
+**Consequences:** The dependency brings `pdfminer.six`, `pypdfium2`, and `Pillow` with it. The parsing engines work on positioned words rather than PDF objects, so the library can be replaced by rewriting only the adapter.
+
+## 2026-09-26 — Statement parsing: generic engines, local profiles, and reconciliation
+
+**Decision:** Parse statements with two generic engines driven by local profiles, as decided for notifications:
+
+- A column-table engine for account statements: each word is assigned to a column by the horizontal position of its left or right edge.
+- A line-pattern engine for card statements: each entry is one text line matched by a pattern with named fields, grouped into sections and parts (for example, one part per currency).
+
+Profiles hold the institution's titles, column positions, patterns, and number formats in `secrets/statement_profiles.toml`; the repository ships a fictional example. Every parse also produces reconciliation checks: account balances are replayed from the opening balance and compared with each stated balance, and card entries are summed and compared with each stated total and with the amount due.
+
+**Rationale:** A statement's layout identifies its institution, so the reasoning of the pseudonymous-institutions decision applies. The two techniques covered every statement surveyed. Reconciliation turns an unrecognized line into a failed check instead of a silently missing transaction, which matters more than parsing speed or convenience.
+
+**Consequences:** Parsing output keeps named fields as the statement states them; mapping them to the transaction model is Stage 1 work. A layout change shows up as failed checks, and the profile is updated locally. Tests use synthetic words and a generated PDF, never a real statement.

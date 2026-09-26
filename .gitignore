@@ -25,5 +25,6 @@ backups/
 *.xls
 *.xlsx
 *.xlsm
+*.pdf
 credentials.json
 token.json
