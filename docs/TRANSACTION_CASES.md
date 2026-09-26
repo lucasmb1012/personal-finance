@@ -1,24 +1,49 @@
 # Transaction Cases
 
-These guidelines describe how card transactions discovered from bank notification emails are recorded. Public documentation stays generic: specific financial institutions and card products are not named (see [DATA_POLICY.md](DATA_POLICY.md)).
+These guidelines describe how transactions discovered from bank notification emails are recorded. Public documentation stays generic: financial institutions are referred to by pseudonyms (Bank A, Bank B), card products are not named, and notification wording is described rather than quoted (see [DATA_POLICY.md](DATA_POLICY.md)).
 
-## Card identification
+## Sources
 
-Cards are identified by their last four digits only. Full card numbers must not be stored. Fixtures use invented last-four digits.
+| Source | Status |
+| --- | --- |
+| Bank A notification emails | Surveyed on 2026-09-26 |
+| Bank A account statements | Pending |
+| Bank B | Pending |
 
-## Card types
+## Payment instruments
 
-- Debit card
-- Credit card
+- **Credit card:** identified by the card's last four digits. An operator may hold several credit cards at once, and card numbers change when a card is replaced.
+- **Account (debit):** purchases and withdrawals charged to an account are identified by the **account's** last four digits, not the debit card's.
 
-## Transaction cases
+Full card or account numbers must not be stored. Fixtures use invented last-four digits.
 
-| Card type | Case | Record handling |
-| --- | --- | --- |
-| Debit | Debit-card purchase | Record the transaction. |
-| Credit | Credit-card charge | Record the transaction. |
-| Credit | Credit-card charge followed by a reversal | Record both the original charge and the reversal as separate transactions. |
+## Bank A notification cases
+
+Every transaction notification carries its data in a single sentence in the email body.
+
+| Case | Instrument | Fields in the notification | Currencies observed |
+| --- | --- | --- | --- |
+| Credit-card purchase | Credit card | Amount, currency, card last four, merchant descriptor, local date and time | Local currency, US dollars |
+| Account purchase | Account | Amount, currency, account last four, merchant descriptor, local date and time | Local currency |
+| ATM withdrawal | Account | Amount, currency, account last four, local date and time | Local currency |
+
+Several subject lines, used at different times, map to the same account-purchase sentence, and the surrounding email template has changed over time while the sentence has not. Parsing therefore relies on the body sentence; the subject only helps classify the message.
+
+Other messages from the same sender (statements, loan notices, security notices) are not transaction notifications. Statements are a separate source.
+
+## Field formats
+
+- **Amounts:** local-currency amounts are whole units with `.` as the thousands separator. US-dollar amounts use `,` as the decimal separator and always carry two decimals. No US-dollar amount of 1,000 or more has been observed; the parser must still accept a thousands separator.
+- **Foreign purchases:** purchases abroad and from foreign online merchants arrive converted to US dollars. The original currency and the exchange rate are not in the notification.
+- **Date and time:** the body states a local date and time without an offset. The message's `Date` header carries the exact instant. The operator's time zone observes daylight saving time.
+- **Merchant descriptor:** raw text from the card network, not a clean merchant name. It may be truncated and may end with a city and a two-letter country code.
 
 ## Reversals
 
-Credit-card reversals are retained as transactions. They do not delete or overwrite the original charge. Debit-card reversals are not yet documented.
+Bank A does not send notifications for reversals. Reversals, installments, fees, and interest are expected to come only from account statements.
+
+When a credit-card reversal is recorded, it is kept as a separate transaction and does not delete or overwrite the original charge. Debit reversals are not yet documented.
+
+## Authenticity
+
+Only messages whose `Authentication-Results` header reports `dmarc=pass` are accepted. SPF alone is not required: legitimate notifications have been observed with a failing SPF check but a passing DKIM signature and DMARC result.

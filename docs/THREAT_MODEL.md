@@ -1,7 +1,7 @@
 # Threat Model — Email Notification Ingestion
 
 **Scope:** the Gmail adapter that reads the operator's own mailbox to discover card-transaction notifications.
-**Status:** initial version, 2026-09-25. Revisit before each change to access scope, storage, or retention.
+**Status:** revised 2026-09-26. Revisit before each change to access scope, storage, or retention.
 
 ## Assets
 
@@ -23,11 +23,14 @@ The operator runs the OAuth consent flow on their own machine for their own acco
 | Access is broader than needed. | Request only the `gmail.readonly` scope; never send, modify, or delete mail. | In place |
 | Real email content enters the repository through fixtures, tests, logs, or documentation. | Synthetic fixtures only, never redacted copies; search returns message IDs without fetching bodies. | In place |
 | Public artifacts reveal where the operator holds accounts. | Generic documentation; search queries load from an ignored local file under `secrets/`, and the repository ships only a fictional example. | In place |
+| Forged emails imitating a financial institution inject fake transactions. | Accept only messages whose `Authentication-Results` header reports `dmarc=pass`. | Planned |
+| Parsing patterns quote notification wording and reveal the institution. | A generic parsing engine loads institution-specific patterns from ignored local profiles under `secrets/`; tests use a fictional institution. | Planned |
 | A token is leaked or stolen. | Revoke the app's access in the Google account, delete the local token, and follow [SECURITY.md](../SECURITY.md). | Documented |
 
 ## Accepted risks
 
 - On the operator's explicit request, a coding agent may read local data. Content read that way is sent to the agent's provider; it never enters the repository.
+- During the notification survey, a few sample emails were stored as `.eml` files under the ignored `data/raw/` directory with owner-only permissions. They stay local until a retention policy is decided.
 
 ## Open items
 
