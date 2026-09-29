@@ -61,17 +61,24 @@ The first two are sources of transactions. The other two explain charges that al
 
 - A table with date, description, branch, document, debit, credit, and balance columns. Debits and credits are only distinguishable by their horizontal position.
 - Dates have a day and month but no year. A statement period can cross a year boundary, so the year is inferred from the period end.
-- The balance is stated only on the last row of each day, and the statement states opening and closing balances. Replaying the rows reproduced every stated balance in the surveyed samples, and each closing balance equals the next statement's opening balance.
+- The balance is stated only on the last row of each day, and the statement states opening and closing balances. Replaying the rows reproduced every stated balance in every statement of the full history, and each closing balance equals the next statement's opening balance.
+- A period's stated start date is the previous period's end date, the date of the opening balance. Entries dated that day appear only on the earlier statement, so consecutive statements do not overlap.
 - Descriptions are truncated. Transfers include the counterparty's name, which is personal data about third parties.
 
 ### Credit card statement
 
-- One statement per card and billing period. A statement can list several cards, each with its own subtotal. A replaced card continues on a new number.
+- One statement per card and billing period. A statement can list several cards, each with its own subtotal. A replaced card continues on a new number, and its first statement carries on from the old card's last amount due.
+- Each statement states the previous billing period and the previous amount due, which chains consecutive statements of a card.
+- No statement is issued for a period with nothing to bill. The next statement then names a previous period that no statement covers, with a previous amount due of zero.
 - Entries are grouped into sections (payments, single-installment purchases, installment purchases, voluntary products, fees and taxes), each ending with a stated total. The amount due equals the previous amount due plus every section total; this held in all samples.
 - **Installments:** each installment entry carries the original purchase date, the original amount, the total with interest, the installment number and count (for example, 3 of 6), the installment amount, and the interest rate.
 - An informational section lists new installment purchases whose first installment is billed next period (installment 0 of n). These entries are not billed and are excluded from the totals. In one sample its stated total omitted an interest-bearing purchase, so that total is not checked.
 - Fees and a stamp tax per installment purchase appear only on statements.
 - **Foreign purchases:** when there is foreign activity, the same file contains a second part in US dollars. Each entry carries the amount in the original currency, the amount in US dollars, a city, and a two-letter country code. The original currency itself is not named.
+
+### Full-history validation
+
+Every checking account and credit card statement in the mailbox was parsed, about four years of history. Every statement passed its own reconciliation checks without profile changes, and consecutive statements chained as described above, with one exception: one card statement was never delivered by email. Its absence showed up because the next statement's previous amount due did not match the last statement received. Backfill must therefore detect gaps by chaining statements rather than assume that every period arrived, and a missing statement has to be obtained from the institution directly.
 
 ### Cross-document reconciliation
 

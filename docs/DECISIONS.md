@@ -139,3 +139,11 @@ Profiles hold the institution's titles, column positions, patterns, and number f
 **Rationale:** A statement's layout identifies its institution, so the reasoning of the pseudonymous-institutions decision applies. The two techniques covered every statement surveyed. Reconciliation turns an unrecognized line into a failed check instead of a silently missing transaction, which matters more than parsing speed or convenience.
 
 **Consequences:** Parsing output keeps named fields as the statement states them; mapping them to the transaction model is Stage 1 work. A layout change shows up as failed checks, and the profile is updated locally. Tests use synthetic words and a generated PDF, never a real statement.
+
+## 2026-09-29 — Cross-statement continuity checks wait for the Stage 1 model
+
+**Decision:** Checks that chain consecutive statements (closing balance to opening balance, amount due to previous amount due, billing period to previous period) and report missing statements will be implemented with the Stage 1 transaction model, not in the statement parser now. The full-history validation used temporary local scripts outside the repository.
+
+**Rationale:** Chaining needs a stable notion of which account or card a statement belongs to and which period it covers. That identity belongs to the transaction model; building it into the parser now would create structures the model is likely to replace. The validation itself is complete: every statement reconciles on its own and the chains held except for one statement that was never delivered.
+
+**Consequences:** Until then, a missing statement is not detected automatically. Card statement profiles will need to expose the card identifier, the billing periods, and the previous amount due, which the parser currently reads only as reconciliation values.
