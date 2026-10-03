@@ -65,6 +65,7 @@ Do not place real exports, statements, credentials, or copied emails in this che
 - [Roadmap](docs/ROADMAP.md): staged delivery plan and exit criteria.
 - [Data policy](docs/DATA_POLICY.md): non-negotiable privacy rules.
 - [Threat model](docs/THREAT_MODEL.md): risks and safeguards for email and statement ingestion.
+- [Data pipeline principles](docs/PRINCIPLES.md): idempotency, determinism, recoverability, and the other rules every ingestion step follows.
 - [Security policy](SECURITY.md): how to report a suspected disclosure.
 - [Agent instructions](AGENTS.md): repository rules for Codex and other coding agents.
 

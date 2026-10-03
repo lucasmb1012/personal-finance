@@ -167,3 +167,11 @@ Profiles hold the institution's titles, column positions, patterns, and number f
 **Rationale:** Statements are complete and reconcile, so they give a trustworthy base before notification emails, which carry no reversals, installments, or fees, are added and matched against them. One sign convention lets checking and card activity be summed together. Without explicit transfers, a card payment would count as spending twice: once on the checking account and once as the card purchases it pays.
 
 **Consequences:** Notification ingestion and matching come later. Transfer patterns are institution wording, so they stay in the ignored profile. Card informational entries (installments billed in later periods) are not stored; each installment is stored when billed, so spending follows cash flow rather than purchase date.
+
+## 2026-10-03 — Data pipeline principles as a standing rule
+
+**Decision:** Adopt ten data pipeline principles as standing rules for every ingestion, transformation, and storage component: idempotency, determinism, incrementality, state management and checkpoints, delivery semantics, atomicity and consistency, order and time, recoverability, observability, and data contracts. [PRINCIPLES.md](PRINCIPLES.md) defines each one, records how the project applies it, and lists what is missing.
+
+**Rationale:** The project is moving from one-off parsing to a pipeline with several sources, push delivery, and a database. These are the properties that keep such a pipeline correct when runs repeat, fail midway, or receive inputs late or twice. Writing them down makes them review criteria rather than intentions, and it serves the project's learning and portfolio goals.
+
+**Consequences:** Changes that affect a principle update its notes in the same pull request. Weakening a principle requires a decision entry. The listed gaps, such as a synchronization checkpoint, a run record, and profile versioning, become planned work.

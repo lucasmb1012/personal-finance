@@ -17,6 +17,7 @@ These rules apply to Codex and every automated coding agent working in this repo
 - Keep all repository prose, identifiers, code comments, and user-facing messages in English.
 - Make the smallest coherent change. Do not introduce a database, cloud service, framework, or dependency without a documented need and decision.
 - Keep domain logic separate from file or provider adapters as the implementation emerges.
+- Follow the data pipeline principles in `docs/PRINCIPLES.md` (idempotency, determinism, incrementality, checkpoints, delivery semantics, atomicity, order and time, recoverability, observability, data contracts) in every ingestion, transformation, or storage change, and update their "Today" and "Missing" notes when a change affects them.
 - Add or update tests for behavior changes. Run the relevant test command before handing off work.
 - Record durable architecture, security, and data-model decisions in `docs/DECISIONS.md`.
 
