@@ -1,0 +1,32 @@
+# Fictional example of the local category rules. Copy this file to
+# secrets/categories.toml (ignored by Git) and write rules for your own
+# merchants and contacts. Never commit the real file.
+#
+# Rules are checked in order and the first match wins, so put specific rules
+# before general ones. Patterns are Python regular expressions matched against
+# the transaction description, ignoring case. `direction` limits a rule to money
+# in ("in") or money out ("out"). Transactions that no rule matches are
+# reported as "uncategorized".
+
+[[rules]]
+category = "income:salary"
+direction = "in"
+patterns = ['^PAYROLL EXAMPLE CORP']
+
+[[rules]]
+category = "housing:rent"
+direction = "out"
+patterns = ['^TRANSFER TO FICTIONAL LANDLORD']
+
+[[rules]]
+category = "food:groceries"
+patterns = ['SUPERMARKET', 'GREENGROCER']
+
+[[rules]]
+category = "food:restaurants"
+patterns = ['CAFE', 'BISTRO', 'PIZZERIA']
+
+[[rules]]
+category = "people:transfers out"
+direction = "out"
+patterns = ['^TRANSFER TO ']

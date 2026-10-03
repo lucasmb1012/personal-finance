@@ -18,6 +18,8 @@ Each principle states the rule, how the project applies it today, and what is st
 
 **Today:** The parsing engines and the ledger mapping are pure functions of positioned words and a profile. Amounts are exact decimals. The only time-dependent values are audit timestamps such as `loaded_at`.
 
+Categories are recomputed from the local rules on every run, so the same rules always give the same categories.
+
 **Missing:** Stored records do not say which version of a profile produced them, so a profile change, such as a new transfer pattern, is applied only by reloading. A profile fingerprint per statement would make that visible.
 
 ## 3. Incrementality

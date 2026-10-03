@@ -10,8 +10,10 @@ import unittest
 from datetime import date
 from decimal import Decimal
 
+from personal_finance.ledger.categories import load_category_rules
 from personal_finance.ledger.statements import statement_record
 from statement_fixtures import example_profile
+from test_categories import EXAMPLE_RULES
 from test_ledger import card_words, checking_words
 
 TEST_DATABASE = os.environ.get("PERSONAL_FINANCE_TEST_DATABASE")
@@ -29,7 +31,7 @@ class TestDatabase(unittest.TestCase):
         self.database = database
         self.connection = psycopg.connect(dbname=TEST_DATABASE, autocommit=True)
         self.connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
-        self.assertEqual(["0001_ledger"], database.migrate(self.connection))
+        self.assertEqual(["0001_ledger", "0002_categories"], database.migrate(self.connection))
 
     def tearDown(self) -> None:
         self.connection.close()
@@ -68,6 +70,22 @@ class TestDatabase(unittest.TestCase):
 
         self.assertEqual(
             [("EUR", date(2026, 3, 1), None, Decimal("-242.50"), Decimal("120.00"))],
+            rows,
+        )
+
+    def test_categories_are_applied_idempotently_and_reported(self) -> None:
+        card = statement_record(card_words(), example_profile("example_card"))
+        self.database.save_statement(self.connection, card, "card.pdf", "c" * 64)
+        rules = load_category_rules(EXAMPLE_RULES)
+
+        self.assertEqual(1, self.database.apply_categories(self.connection, rules))
+        self.assertEqual(0, self.database.apply_categories(self.connection, rules))
+        rows = self.connection.execute(
+            "SELECT category, spending FROM monthly_categories WHERE currency = 'EUR' ORDER BY category"
+        ).fetchall()
+
+        self.assertEqual(
+            [("food:restaurants", Decimal("-12.50")), ("uncategorized", Decimal("-230.00"))],
             rows,
         )
 

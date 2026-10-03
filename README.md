@@ -51,7 +51,8 @@ docker compose up -d
 uv run --env-file .env python -m personal_finance.store migrate
 uv run --env-file .env python -m personal_finance.store load data/raw/statements/...
 uv run --env-file .env python -m personal_finance.store check
-uv run --env-file .env python -m personal_finance.store report
+uv run --env-file .env python -m personal_finance.store categorize
+uv run --env-file .env python -m personal_finance.store report --by category
 ```
 
 With `.env` loaded, the test suite also runs the database tests against the disposable database it names.

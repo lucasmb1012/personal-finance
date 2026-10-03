@@ -4,7 +4,8 @@ Usage:
     python -m personal_finance.store migrate
     python -m personal_finance.store load [--profiles PATH] FILE...
     python -m personal_finance.store check
-    python -m personal_finance.store report [--months N]
+    python -m personal_finance.store categorize [--rules PATH]
+    python -m personal_finance.store report [--months N] [--by account|category]
 
 Connection settings come from the PostgreSQL environment variables; run with
 `uv run --env-file .env`. The PDF password is read from STATEMENT_PDF_PASSWORD
@@ -19,12 +20,21 @@ import os
 import sys
 from pathlib import Path
 
+from personal_finance.ledger.categories import load_category_rules
 from personal_finance.ledger.continuity import check_continuity
 from personal_finance.ledger.statements import statement_record
 from personal_finance.statements.__main__ import DEFAULT_PROFILES, PASSWORD_VARIABLE, _select
 from personal_finance.statements.pdf import read_words
 from personal_finance.statements.profiles import load_profiles
-from personal_finance.store.database import connect, migrate, period_balances, save_statement
+from personal_finance.store.database import (
+    apply_categories,
+    connect,
+    migrate,
+    period_balances,
+    save_statement,
+)
+
+DEFAULT_RULES = Path("secrets/categories.toml")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -35,8 +45,11 @@ def main(argv: list[str] | None = None) -> int:
     load.add_argument("--profiles", type=Path, default=DEFAULT_PROFILES)
     load.add_argument("files", nargs="+", type=Path)
     commands.add_parser("check")
+    categorize = commands.add_parser("categorize")
+    categorize.add_argument("--rules", type=Path, default=DEFAULT_RULES)
     report = commands.add_parser("report")
     report.add_argument("--months", type=int, default=12)
+    report.add_argument("--by", choices=("account", "category"), default="account")
     arguments = parser.parse_args(argv)
 
     with connect() as connection:
@@ -48,6 +61,10 @@ def main(argv: list[str] | None = None) -> int:
             return _load(connection, arguments.profiles, arguments.files)
         if arguments.command == "check":
             return _check(connection)
+        if arguments.command == "categorize":
+            return _categorize(connection, arguments.rules)
+        if arguments.by == "category":
+            return _category_report(connection, arguments.months)
         return _report(connection, arguments.months)
 
 
@@ -85,6 +102,32 @@ def _check(connection) -> int:
                 f"{issue.current.period_start}..{issue.current.period_end} opens {issue.current.opening}"
             )
     return 1 if problems else 0
+
+
+def _categorize(connection, rules_path: Path) -> int:
+    changed = apply_categories(connection, load_category_rules(rules_path))
+    rows = connection.execute(
+        "SELECT coalesce(category, 'uncategorized'), count(*) FROM transactions"
+        " WHERE NOT is_transfer GROUP BY 1 ORDER BY 2 DESC"
+    ).fetchall()
+    print(f"Changed {changed} categories. Non-transfer transactions per category:")
+    for category, count in rows:
+        print(f"    {category:<40} {count:>6}")
+    return 0
+
+
+def _category_report(connection, months: int) -> int:
+    rows = connection.execute(
+        "SELECT currency, category, sum(income), sum(spending), sum(transactions)"
+        " FROM monthly_categories"
+        " WHERE month >= date_trunc('month', current_date) - make_interval(months => %s)"
+        " GROUP BY currency, category ORDER BY currency, coalesce(sum(spending), 0), category",
+        (months,),
+    ).fetchall()
+    print(f"{'cur':<3} {'category':<40} {'income':>14} {'spending':>14} {'n':>5}")
+    for currency, category, income, spending, count in rows:
+        print(f"{currency:<3} {category:<40} {income or 0:>14,} {spending or 0:>14,} {count:>5}")
+    return 0
 
 
 def _report(connection, months: int) -> int:
