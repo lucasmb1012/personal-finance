@@ -175,3 +175,13 @@ Profiles hold the institution's titles, column positions, patterns, and number f
 **Rationale:** The project is moving from one-off parsing to a pipeline with several sources, push delivery, and a database. These are the properties that keep such a pipeline correct when runs repeat, fail midway, or receive inputs late or twice. Writing them down makes them review criteria rather than intentions, and it serves the project's learning and portfolio goals.
 
 **Consequences:** Changes that affect a principle update its notes in the same pull request. Weakening a principle requires a decision entry. The listed gaps, such as a synchronization checkpoint, a run record, and profile versioning, become planned work.
+
+## 2026-10-03 — Rule-based categories from a local file
+
+**Decision:** Categorize transactions with ordered rules in an ignored local file, `secrets/categories.toml`, with a fictional example in `examples/`. Each rule names a category, one or more description patterns, and optionally a direction (money in or out); the first matching rule wins. A `categorize` command recomputes every transaction's category in one database transaction, and a `monthly_categories` view reports totals per category, excluding transfers.
+
+**Rationale:** Rules name the merchants and people the operator deals with, so they are private, like provider profiles. Ordered patterns are transparent, testable, and deterministic, and they covered more than ninety percent of a year's spending in a first pass. Recomputing every category on each run applies rule changes retroactively, without a separate history of manual edits.
+
+**Alternatives considered:** Matching rules inside PostgreSQL would apply them automatically on load, but its regular expression dialect differs from Python's and the rules would be harder to test. Machine-learned classification would need labelled data that does not exist yet, and its results would be harder to explain.
+
+**Consequences:** Categories are as good as the local rules; uncategorized transactions are reported as such. Manual per-transaction overrides are not supported yet. Running `categorize` after each load keeps categories current.

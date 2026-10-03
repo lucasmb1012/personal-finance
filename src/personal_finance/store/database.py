@@ -10,6 +10,7 @@ from importlib import resources
 import psycopg
 from psycopg.types.json import Jsonb
 
+from personal_finance.ledger.categories import CategoryRule, categorize
 from personal_finance.ledger.models import AccountKey, PeriodBalance, StatementRecord
 
 MIGRATIONS_PACKAGE = "personal_finance.store.migrations"
@@ -116,6 +117,20 @@ def period_balances(connection: psycopg.Connection) -> dict[AccountKey, list[Per
             PeriodBalance(start, end, currency.strip(), opening, closing)
         )
     return dict(grouped)
+
+
+def apply_categories(connection: psycopg.Connection, rules: tuple[CategoryRule, ...]) -> int:
+    """Recompute every transaction's category in one transaction; return how many changed."""
+    with connection.transaction():
+        rows = connection.execute("SELECT id, description, amount, category FROM transactions").fetchall()
+        changes = [
+            (category, identifier)
+            for identifier, description, amount, current in rows
+            if (category := categorize(rules, description, amount)) != current
+        ]
+        with connection.cursor() as cursor:
+            cursor.executemany("UPDATE transactions SET category = %s WHERE id = %s", changes)
+    return len(changes)
 
 
 def _account_id(connection: psycopg.Connection, account: AccountKey) -> int:
