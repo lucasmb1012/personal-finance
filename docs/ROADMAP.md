@@ -37,3 +37,14 @@ The roadmap is intentionally stage-based. A stage is complete only when its exit
 **Goal:** Produce useful, explainable summaries such as cash flow, category trends, and reconciliation checks.
 
 **Exit criteria:** outputs are reproducible from synthetic data; calculation assumptions are documented; tests cover key financial edge cases.
+
+## Status — 2026-10-03
+
+- **Stage 0:** complete.
+- **Stage 1:** in progress. Accounts, statements, signed transactions, transfers, continuity checks, and rule-based categories exist, with invariants documented in `personal_finance.ledger.models`. Duplicates between notifications and statements are not handled yet.
+- **Stage 2:** statements done for both institutions' accounts and for one institution's cards. Notifications are inventoried but not parsed, and the email retention policy is still open.
+- **Stage 3:** not started.
+- **Stage 4:** started early. PostgreSQL in Docker Compose with migrations is in place; backups and retention guidance are missing.
+- **Stage 5:** monthly and per-category reports exist as database views and command-line output.
+
+**Next:** decide the email retention policy, survey Bank B notification content, and ingest notifications incrementally from a stored mailbox checkpoint. After that, match notifications to statement entries, add backups, and parse loan documents.
