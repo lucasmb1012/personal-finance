@@ -9,7 +9,8 @@ These guidelines describe how transactions discovered from bank notification ema
 | Bank A notification emails | Surveyed on 2026-09-26 |
 | Bank A account statements | Surveyed on 2026-09-26 |
 | Bank B account statements | Surveyed on 2026-10-03 |
-| Bank B notification emails and card statements | Pending |
+| Bank B notification emails | Inventoried by headers on 2026-10-03; content pending |
+| Bank B card statements | Not sent by email; pending |
 
 ## Payment instruments
 
@@ -92,6 +93,8 @@ Bank B sends checking and demand deposit account statements as password-protecte
 - **Re-sent statements:** a statement can be sent again as a summary without entries for the same period. It fails reconciliation and is not loaded.
 - **Several accounts:** one operator can hold several checking and demand deposit accounts over time, each identified by its number.
 
+- **Card activity:** card statements are not sent by email; only per-purchase notifications are, and the operator's alert settings do not change that. A mailbox inventory of every Bank B message with an attachment found account statements and loan communications only. Card statements must be obtained from the institution, and until then card payments debited from the checking account are the only record of card spending.
+
 Every Bank B account statement in the mailbox reconciled, except the summary-only copy, and each account chained without breaks. Transfers between Bank A and Bank B accounts cancel out quarter by quarter where both sides have statements.
 
 ### Loading into the ledger
@@ -103,6 +106,14 @@ Every checking account and credit card statement was loaded into the local datab
 - **Foreign-currency debt moved to local currency:** when the US-dollar balance is not paid in dollars, it reappears as a local-currency charge. The dollar purchases already count as spending, so that charge is a transfer between the two currency parts.
 - **Transfers on the checking account:** transfers to and from the operator's own accounts, investment contributions, card payments, credit line draws and repayments, and loan disbursements are transfers. Loan installments are currently counted as spending.
 - **Continuity:** the checking account chained without breaks. The card statement that was never delivered by email shows up as a balance break; a card account that skipped periods with nothing to bill shows up as a gap with chained balances.
+
+### Loan documents
+
+Both institutions send loan documents as PDF attachments. They are not parsed into the ledger yet; a temporary local script read them once.
+
+- **Installment notice:** one per installment. It states the original amount, grant date, final due date, the installment number and count, the capital balance before payment, and how the installment splits into amortization, interest, and fees. The interest varies with the days in each period, so the rate is estimated from the full schedule rather than from one notice.
+- **Quarterly loan communication:** states the pending term, installment number, balance, installment amount, the annual equivalent cost, the total cost of prepaying, and the prepayment fee.
+- **Refinancing:** a new loan can repay an earlier one at the same or another institution. The earlier loan's payments end with one larger payment, and the new loan's disbursement is a transfer, so neither inflates income or spending.
 
 ### Cross-document reconciliation
 
