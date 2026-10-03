@@ -1,0 +1,25 @@
+# Local PostgreSQL for personal-finance. Connection values come from the ignored
+# .env file (see .env.example). The port is bound to 127.0.0.1 only, and the data
+# lives in a named Docker volume outside the checkout.
+name: personal-finance
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${PGUSER:?set PGUSER in .env}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?set PGPASSWORD in .env}
+      POSTGRES_DB: ${PGDATABASE:?set PGDATABASE in .env}
+    ports:
+      - "127.0.0.1:${PGPORT:?set PGPORT in .env}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:

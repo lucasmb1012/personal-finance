@@ -68,6 +68,8 @@ class _PartParser:
             currency=self.part.currency,
             entries=tuple(self.entries),
             checks=tuple(self.checks),
+            values=dict(self.values),
+            grand_total=self.grand_total,
         )
 
     def _read(self, text: str) -> None:

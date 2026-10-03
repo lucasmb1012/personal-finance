@@ -1,7 +1,7 @@
 """Records produced by the statement parsing engines."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
@@ -89,3 +89,5 @@ class StatementPart:
     currency: str
     entries: tuple[PatternEntry, ...]
     checks: tuple[Check, ...]
+    values: Mapping[str, Decimal] = field(default_factory=dict)
+    grand_total: Decimal | None = None

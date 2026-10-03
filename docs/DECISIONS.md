@@ -147,3 +147,31 @@ Profiles hold the institution's titles, column positions, patterns, and number f
 **Rationale:** Chaining needs a stable notion of which account or card a statement belongs to and which period it covers. That identity belongs to the transaction model; building it into the parser now would create structures the model is likely to replace. The validation itself is complete: every statement reconciles on its own and the chains held except for one statement that was never delivered.
 
 **Consequences:** Until then, a missing statement is not detected automatically. Card statement profiles will need to expose the card identifier, the billing periods, and the previous amount due, which the parser currently reads only as reconciliation values.
+
+## 2026-10-03 — PostgreSQL in Docker Compose, psycopg, and plain SQL migrations
+
+**Decision:** Run the local PostgreSQL server with Docker Compose (`compose.yaml`), connect with `psycopg` 3, and version the schema with numbered SQL files applied in order by a small runner that records them in a `schema_migrations` table. This settles the installation and migration questions that the PostgreSQL decision deferred to Stage 4.
+
+**Rationale:**
+
+- Docker Compose: the same definition runs on any machine or host with Docker, which keeps a later deployment open. Homebrew was lighter, needs no Docker daemon, and was the first recommendation, but it ties the setup to one operating system.
+- `psycopg`: the standard PostgreSQL driver for Python. It reads `numeric` as `Decimal` and connects with the standard `PG*` environment variables, so no connection settings live in code.
+- Plain SQL migrations: the schema is small and written by hand. Alembic and SQLAlchemy add a dependency and an abstraction that nothing here needs yet.
+
+**Consequences:** The port is bound to `127.0.0.1` only, the password lives in the ignored `.env` file, and the data lives in a named Docker volume outside the checkout. Docker must be running for anything that touches the database. Backup and retention guidance for the volume is still a Stage 4 exit criterion. Tests that need PostgreSQL run only against a disposable database named in `PERSONAL_FINANCE_TEST_DATABASE` and are skipped otherwise.
+
+## 2026-10-03 — Stage 1 model: statements first, signed amounts, explicit transfers
+
+**Decision:** Start the core model from reconciled statements. An account is identified by institution pseudonym, kind, and at most the last four digits of its number. A statement belongs to one account, covers a period, and has an opening and closing balance per currency. A transaction amount is signed from the operator's point of view: income and credits are positive, spending and charges are negative, so a card purchase is negative and a card payment positive. Entries that move money between the operator's own accounts are flagged as transfers by description patterns in the local profile, and reports exclude them from income and spending. Only statements that pass every reconciliation check are stored, and loading is idempotent by the source file's SHA-256. Continuity checks chain stored statements per account and currency.
+
+**Rationale:** Statements are complete and reconcile, so they give a trustworthy base before notification emails, which carry no reversals, installments, or fees, are added and matched against them. One sign convention lets checking and card activity be summed together. Without explicit transfers, a card payment would count as spending twice: once on the checking account and once as the card purchases it pays.
+
+**Consequences:** Notification ingestion and matching come later. Transfer patterns are institution wording, so they stay in the ignored profile. Card informational entries (installments billed in later periods) are not stored; each installment is stored when billed, so spending follows cash flow rather than purchase date.
+
+## 2026-10-03 — Data pipeline principles as a standing rule
+
+**Decision:** Adopt ten data pipeline principles as standing rules for every ingestion, transformation, and storage component: idempotency, determinism, incrementality, state management and checkpoints, delivery semantics, atomicity and consistency, order and time, recoverability, observability, and data contracts. [PRINCIPLES.md](PRINCIPLES.md) defines each one, records how the project applies it, and lists what is missing.
+
+**Rationale:** The project is moving from one-off parsing to a pipeline with several sources, push delivery, and a database. These are the properties that keep such a pipeline correct when runs repeat, fail midway, or receive inputs late or twice. Writing them down makes them review criteria rather than intentions, and it serves the project's learning and portfolio goals.
+
+**Consequences:** Changes that affect a principle update its notes in the same pull request. Weakening a principle requires a decision entry. The listed gaps, such as a synchronization checkpoint, a run record, and profile versioning, become planned work.

@@ -8,6 +8,7 @@ dependencies = [
     "google-api-python-client>=2.200.0",
     "google-auth-oauthlib>=1.4.1",
     "pdfplumber>=0.11.10",
+    "psycopg[binary]>=3.2",
 ]
 
 [build-system]

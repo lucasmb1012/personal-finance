@@ -21,6 +21,9 @@ period = 'FROM (?P<start>\d\d/\d\d/\d{4}) TO (?P<end>\d\d/\d\d/\d{4})'
 period_date_format = "%d/%m/%Y"
 opening_balance = '^OPENING BALANCE$'
 closing_balance = '^CLOSING BALANCE$'
+# When a statement states its balances in a summary line instead of table rows,
+# replace the two settings above with one pattern:
+# summary = '^PERIOD TOTALS (?P<opening>-?[\d,.]+) .* (?P<closing>-?[\d,.]+)$'
 columns = [
     { name = "date", anchor = "x0", min = 0, max = 60 },
     { name = "description", anchor = "x0", min = 60, max = 300 },
@@ -30,6 +33,17 @@ columns = [
     { name = "balance", anchor = "x1", min = 520, max = 600 },
 ]
 
+# The account a statement belongs to, used when statements are stored.
+# Institutions are pseudonyms. Only the last four digits of the reference are
+# kept. Transfer patterns mark entries that move money between the operator's
+# own accounts, which are neither income nor spending.
+[profiles.example_checking.account]
+institution = "Example Bank"
+kind = "checking"
+currency = "EUR"
+reference = '^ACCOUNT NUMBER (?P<reference>[\d-]+)$'
+transfers = ['^CARD PAYMENT']
+
 # A card statement whose entries are single lines. Totals are checked against
 # the billed entries since the previous total; a subtotal is checked against
 # the entries since the previous subtotal or total. Entries in unbilled
@@ -38,6 +52,15 @@ columns = [
 [profiles.example_card]
 engine = "line_patterns"
 detect = '^EXAMPLE BANK CARD STATEMENT$'
+period = '^BILLING PERIOD (?P<start>\d\d/\d\d/\d{4}) TO (?P<end>\d\d/\d\d/\d{4})$'
+period_date_format = "%d/%m/%Y"
+
+# Without a reference pattern, every statement of the profile is one account.
+[profiles.example_card.account]
+institution = "Example Bank"
+kind = "credit_card"
+currency = "EUR"
+transfers = ['^PAYMENT THANK YOU']
 
 [[profiles.example_card.parts]]
 name = "domestic"

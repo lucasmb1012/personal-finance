@@ -2,6 +2,7 @@
 
 import unittest
 from dataclasses import replace
+import re
 from datetime import date
 from decimal import Decimal
 
@@ -93,6 +94,35 @@ class TestParseColumnTable(unittest.TestCase):
 
         with self.assertRaisesRegex(StatementFormatError, "opening or closing"):
             parse_column_table(words, self.profile)
+
+    def test_reads_balances_from_a_summary_line(self) -> None:
+        profile = replace(
+            self.profile,
+            opening_balance=None,
+            closing_balance=None,
+            summary=re.compile(r"^SUMMARY (?P<opening>[\d,.]+) TO (?P<closing>[\d,.]+)$"),
+        )
+        words = [
+            *left_aligned("EXAMPLE BANK CHECKING STATEMENT", 20, 10),
+            *left_aligned("FROM 20/12/2025 TO 19/01/2026", 20, 20),
+            *header(40),
+            *row(70, "22/12", "COFFEE SHOP FICTION", debit="4.50"),
+            *row(80, "22/12", "BOOKSTORE IMAGINARY", debit="25.00", balance="970.50"),
+            *left_aligned("END OF PAGE", 20, 100),
+            *left_aligned("SUMMARY 1,000.00 TO 970.50", 20, 120),
+        ]
+
+        statement = parse_column_table(words, profile)
+
+        self.assertEqual((Decimal("1000.00"), Decimal("970.50")), (statement.opening_balance, statement.closing_balance))
+        self.assertEqual(2, len(statement.entries))
+        self.assertTrue(all(check.passed for check in reconcile_account_statement(statement)))
+
+    def test_rejects_a_statement_without_its_summary_line(self) -> None:
+        profile = replace(self.profile, opening_balance=None, closing_balance=None, summary=re.compile("^NEVER$"))
+
+        with self.assertRaisesRegex(StatementFormatError, "summary"):
+            parse_column_table(statement_words(), profile)
 
     def test_rejects_text_in_an_amount_column_without_echoing_it(self) -> None:
         words = statement_words() + row(80, "22/12", "", page=2, debit="SECRET")

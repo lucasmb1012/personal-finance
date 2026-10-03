@@ -41,13 +41,15 @@ def parse_column_table(words: Iterable[Word], profile: ColumnTableProfile) -> Ac
             continue
 
         entry = _entry(line, number, profile, period_end)
-        if profile.opening_balance.search(entry.description):
+        if profile.opening_balance and profile.opening_balance.search(entry.description):
             opening = _required_balance(entry, "opening_balance")
-        elif profile.closing_balance.search(entry.description):
+        elif profile.closing_balance and profile.closing_balance.search(entry.description):
             closing = _required_balance(entry, "closing_balance")
         else:
             entries.append(entry)
 
+    if profile.summary is not None:
+        opening, closing = _summary(lines, profile)
     if opening is None or closing is None:
         raise StatementFormatError(
             f"Profile {profile.name!r} found no opening or closing balance row."
@@ -63,6 +65,17 @@ def _period(lines: list[Line], profile: ColumnTableProfile) -> tuple[date, date]
             end = datetime.strptime(match["end"], profile.period_date_format).date()
             return start, end
     raise StatementFormatError(f"Profile {profile.name!r} found no statement period.")
+
+
+def _summary(lines: list[Line], profile: ColumnTableProfile) -> tuple[Decimal, Decimal]:
+    assert profile.summary is not None
+    for line in lines:
+        if match := profile.summary.search(line.text):
+            return (
+                parse_amount(match["opening"], profile.amount_format),
+                parse_amount(match["closing"], profile.amount_format),
+            )
+    raise StatementFormatError(f"Profile {profile.name!r} found no summary line.")
 
 
 def _entry(
