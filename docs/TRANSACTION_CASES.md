@@ -80,6 +80,16 @@ The first two are sources of transactions. The other two explain charges that al
 
 Every checking account and credit card statement in the mailbox was parsed, about four years of history. Every statement passed its own reconciliation checks without profile changes, and consecutive statements chained as described above, with one exception: one card statement was never delivered by email. Its absence showed up because the next statement's previous amount due did not match the last statement received. Backfill must therefore detect gaps by chaining statements rather than assume that every period arrived, and a missing statement has to be obtained from the institution directly.
 
+### Loading into the ledger
+
+Every checking account and credit card statement was loaded into the local database on 2026-10-03. Loading confirmed these cases:
+
+- **Several card accounts:** an operator can hold more than one card account at the same institution, each with its own statements and billing cycle. A replaced card continues the same account, so the profile maps the old number's last four digits to the new one.
+- **Installment dates:** an installment entry carries the original purchase date, not the billing date. Grouping card activity by entry date would put every installment in the purchase month, so reports group it by the statement's billing period.
+- **Foreign-currency debt moved to local currency:** when the US-dollar balance is not paid in dollars, it reappears as a local-currency charge. The dollar purchases already count as spending, so that charge is a transfer between the two currency parts.
+- **Transfers on the checking account:** transfers to and from the operator's own accounts, investment contributions, card payments, credit line draws and repayments, and loan disbursements are transfers. Loan installments are currently counted as spending.
+- **Continuity:** the checking account chained without breaks. The card statement that was never delivered by email shows up as a balance break; a card account that skipped periods with nothing to bill shows up as a gap with chained balances.
+
 ### Cross-document reconciliation
 
 The card payment debited from the checking account equals the card statement's amount due, and the loan installment debited from the account equals the installment notice's total. These links let one document confirm another.

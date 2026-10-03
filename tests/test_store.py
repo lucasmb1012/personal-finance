@@ -57,7 +57,7 @@ class TestDatabase(unittest.TestCase):
             [(b.period_end, b.currency, b.opening, b.closing) for b in balances],
         )
 
-    def test_monthly_flows_separate_transfers(self) -> None:
+    def test_monthly_flows_separate_transfers_and_bill_cards_by_period(self) -> None:
         card = statement_record(card_words(), example_profile("example_card"))
         self.database.save_statement(self.connection, card, "card.pdf", "c" * 64)
 
@@ -67,10 +67,7 @@ class TestDatabase(unittest.TestCase):
         ).fetchall()
 
         self.assertEqual(
-            [
-                ("EUR", date(2026, 1, 1), None, Decimal("-200.00"), None),
-                ("EUR", date(2026, 3, 1), None, Decimal("-42.50"), Decimal("120.00")),
-            ],
+            [("EUR", date(2026, 3, 1), None, Decimal("-242.50"), Decimal("120.00"))],
             rows,
         )
 

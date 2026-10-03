@@ -54,14 +54,16 @@ CREATE TABLE transactions (
 
 CREATE INDEX transactions_account_date ON transactions (account_id, occurred_on);
 
--- Monthly income, spending, and transfers per account and currency.
+-- Monthly income, spending, and transfers per account and currency. Card
+-- activity counts in the month its statement period ends, when it is billed:
+-- an installment carries the original purchase date, but it is paid later.
 CREATE VIEW monthly_flows AS
 SELECT
     a.institution,
     a.kind,
     a.reference,
     t.currency,
-    date_trunc('month', t.occurred_on)::date AS month,
+    m.month,
     sum(t.amount) FILTER (WHERE NOT t.is_transfer AND t.amount > 0) AS income,
     sum(t.amount) FILTER (WHERE NOT t.is_transfer AND t.amount < 0) AS spending,
     sum(t.amount) FILTER (WHERE t.is_transfer) AS transfers,
@@ -69,4 +71,10 @@ SELECT
     count(*) AS transactions
 FROM transactions t
 JOIN accounts a ON a.id = t.account_id
-GROUP BY a.institution, a.kind, a.reference, t.currency, month;
+JOIN statements s ON s.id = t.statement_id
+CROSS JOIN LATERAL (
+    SELECT date_trunc(
+        'month', CASE WHEN a.kind = 'credit_card' THEN s.period_end ELSE t.occurred_on END
+    )::date AS month
+) m
+GROUP BY a.institution, a.kind, a.reference, t.currency, m.month;

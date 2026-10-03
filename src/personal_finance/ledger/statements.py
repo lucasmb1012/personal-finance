@@ -75,7 +75,7 @@ def _reference(lines: Sequence[Line], profile_name: str, rule: AccountRule) -> s
         if match := rule.reference.search(line.text):
             digits = re.sub(r"\D", "", match["reference"])
             if len(digits) >= 4:
-                return digits[-4:]
+                return rule.aliases.get(digits[-4:], digits[-4:])
     raise StatementFormatError(f"Profile {profile_name!r} found no account reference.")
 
 

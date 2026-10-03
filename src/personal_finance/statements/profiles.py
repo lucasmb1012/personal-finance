@@ -39,14 +39,17 @@ class AccountRule:
 
     ``reference`` finds the account number on the statement; only its last four
     digits are kept. Without it, statements of the profile share one account.
-    ``transfers`` match entry descriptions that move money between the
-    operator's own accounts, such as a card payment from a checking account.
+    ``aliases`` map a replaced number's last four digits to the current ones,
+    so a replaced card stays one account. ``transfers`` match entry
+    descriptions that move money between the operator's own accounts, such as
+    a card payment from a checking account.
     """
 
     institution: str
     kind: str
     currency: str
     reference: re.Pattern[str] | None = None
+    aliases: Mapping[str, str] = field(default_factory=dict)
     transfers: tuple[re.Pattern[str], ...] = ()
 
 
@@ -212,6 +215,7 @@ def _account(reader: "_Reader") -> AccountRule | None:
     kind = account.string("kind")
     if kind not in ACCOUNT_KINDS:
         raise ValueError(f"{account.context} has an unknown kind.")
+    aliases = account.optional_table("aliases")
     reference = None
     if "reference" in account.table:
         reference = account.pattern("reference", groups=("reference",))
@@ -220,6 +224,7 @@ def _account(reader: "_Reader") -> AccountRule | None:
         kind=kind,
         currency=account.string("currency"),
         reference=reference,
+        aliases={key: aliases.string(key) for key in aliases.table},
         transfers=tuple(
             account.compile(f"transfers[{index}]", pattern)
             for index, pattern in enumerate(account.strings("transfers"))

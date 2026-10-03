@@ -29,6 +29,14 @@ class TestCheckingStatementRecord(unittest.TestCase):
     def test_identifies_the_account_by_its_last_four_digits(self) -> None:
         self.assertEqual(AccountKey("Example Bank", "checking", "4567"), self.record.account)
 
+    def test_maps_a_replaced_number_to_the_current_account(self) -> None:
+        profile = example_profile("example_checking")
+        rule = replace(profile.account, aliases={"4567": "9999"})
+
+        record = statement_record(checking_words(), replace(profile, account=rule))
+
+        self.assertEqual("9999", record.account.reference)
+
     def test_keeps_period_and_balances(self) -> None:
         (balance,) = self.record.balances
 
