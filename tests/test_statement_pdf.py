@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from personal_finance.statements.pdf import read_words
+from personal_finance.statements.pdf import normalize_text, read_words
 
 
 def minimal_pdf(texts: list[tuple[float, float, str]]) -> bytes:
@@ -43,3 +43,7 @@ class TestReadWords(unittest.TestCase):
         self.assertAlmostEqual(50, words[0].x0, places=0)
         self.assertLess(words[0].top, words[1].top)
         self.assertEqual({1}, {word.page for word in words})
+
+    def test_normalizes_minus_signs_to_hyphens(self) -> None:
+        self.assertEqual("01-02-2026", normalize_text("01\u221202\u22122026"))
+        self.assertEqual("-12.50", normalize_text("\u221212.50"))

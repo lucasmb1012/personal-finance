@@ -21,6 +21,9 @@ period = 'FROM (?P<start>\d\d/\d\d/\d{4}) TO (?P<end>\d\d/\d\d/\d{4})'
 period_date_format = "%d/%m/%Y"
 opening_balance = '^OPENING BALANCE$'
 closing_balance = '^CLOSING BALANCE$'
+# When a statement states its balances in a summary line instead of table rows,
+# replace the two settings above with one pattern:
+# summary = '^PERIOD TOTALS (?P<opening>-?[\d,.]+) .* (?P<closing>-?[\d,.]+)$'
 columns = [
     { name = "date", anchor = "x0", min = 0, max = 60 },
     { name = "description", anchor = "x0", min = 60, max = 300 },

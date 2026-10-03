@@ -55,7 +55,12 @@ class AccountRule:
 
 @dataclass(frozen=True)
 class ColumnTableProfile:
-    """A statement laid out as a table whose columns are found by position."""
+    """A statement laid out as a table whose columns are found by position.
+
+    The opening and closing balances come either from rows whose description
+    matches ``opening_balance`` and ``closing_balance``, or from one
+    ``summary`` line with ``opening`` and ``closing`` groups.
+    """
 
     name: str
     detect: re.Pattern[str]
@@ -66,11 +71,12 @@ class ColumnTableProfile:
     date_format: str
     period: re.Pattern[str]
     period_date_format: str
-    opening_balance: re.Pattern[str]
-    closing_balance: re.Pattern[str]
+    opening_balance: re.Pattern[str] | None
+    closing_balance: re.Pattern[str] | None
     columns: tuple[Column, ...]
     line_tolerance: float = DEFAULT_LINE_TOLERANCE
     account: AccountRule | None = None
+    summary: re.Pattern[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -161,6 +167,13 @@ def _column_table(name: str, reader: "_Reader") -> ColumnTableProfile:
     missing = [column for column in ACCOUNT_COLUMNS if column not in names]
     if missing:
         raise ValueError(f"Profile {name!r} is missing columns: {', '.join(missing)}.")
+    summary = None
+    opening_balance = closing_balance = None
+    if "summary" in reader.table:
+        summary = reader.pattern("summary", groups=("opening", "closing"))
+    else:
+        opening_balance = reader.pattern("opening_balance")
+        closing_balance = reader.pattern("closing_balance")
     return ColumnTableProfile(
         name=name,
         detect=reader.pattern("detect"),
@@ -171,11 +184,12 @@ def _column_table(name: str, reader: "_Reader") -> ColumnTableProfile:
         date_format=reader.string("date_format"),
         period=reader.pattern("period", groups=("start", "end")),
         period_date_format=reader.string("period_date_format"),
-        opening_balance=reader.pattern("opening_balance"),
-        closing_balance=reader.pattern("closing_balance"),
+        opening_balance=opening_balance,
+        closing_balance=closing_balance,
         columns=columns,
         line_tolerance=reader.number("line_tolerance", DEFAULT_LINE_TOLERANCE),
         account=_account(reader),
+        summary=summary,
     )
 
 

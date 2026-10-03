@@ -8,7 +8,8 @@ These guidelines describe how transactions discovered from bank notification ema
 | --- | --- |
 | Bank A notification emails | Surveyed on 2026-09-26 |
 | Bank A account statements | Surveyed on 2026-09-26 |
-| Bank B | Pending |
+| Bank B account statements | Surveyed on 2026-10-03 |
+| Bank B notification emails and card statements | Pending |
 
 ## Payment instruments
 
@@ -79,6 +80,19 @@ The first two are sources of transactions. The other two explain charges that al
 ### Full-history validation
 
 Every checking account and credit card statement in the mailbox was parsed, about four years of history. Every statement passed its own reconciliation checks without profile changes, and consecutive statements chained as described above, with one exception: one card statement was never delivered by email. Its absence showed up because the next statement's previous amount due did not match the last statement received. Backfill must therefore detect gaps by chaining statements rather than assume that every period arrived, and a missing statement has to be obtained from the institution directly.
+
+### Bank B account statements
+
+Bank B sends checking and demand deposit account statements as password-protected PDF attachments; the password is derived from a personal identifier. Card statements do not arrive by email and must be obtained from the institution.
+
+- **Issued by volume, not by month:** a new statement is issued after roughly one hundred entries, or at year end, so a period can last from a few days to a year. Periods still chain without gaps: each starts on the previous period's end date.
+- **Layout:** the same column-table layout as Bank A, with a date that includes the year, a balance on every row, and two layout generations whose columns differ by a few points. Some pages are shifted slightly, so column boundaries need a margin.
+- **Balances:** there are no opening and closing balance rows. A summary line states the opening balance, total debits, total credits, and closing balance.
+- **Characters:** older files write the dashes in dates as a minus sign rather than a hyphen; the PDF adapter normalizes them.
+- **Re-sent statements:** a statement can be sent again as a summary without entries for the same period. It fails reconciliation and is not loaded.
+- **Several accounts:** one operator can hold several checking and demand deposit accounts over time, each identified by its number.
+
+Every Bank B account statement in the mailbox reconciled, except the summary-only copy, and each account chained without breaks. Transfers between Bank A and Bank B accounts cancel out quarter by quarter where both sides have statements.
 
 ### Loading into the ledger
 

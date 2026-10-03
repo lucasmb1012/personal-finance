@@ -37,6 +37,34 @@ class TestLoadProfiles(unittest.TestCase):
         self.assertIsInstance(profiles["example_card"], LinePatternProfile)
         self.assertEqual(["domestic", "foreign"], [part.name for part in profiles["example_card"].parts])
 
+    def test_loads_account_rules_and_card_periods(self) -> None:
+        profiles = load_profiles(EXAMPLE_PROFILES)
+        checking, card = profiles["example_checking"].account, profiles["example_card"]
+
+        self.assertEqual(("Example Bank", "checking", "EUR"), (checking.institution, checking.kind, checking.currency))
+        self.assertTrue(checking.transfers[0].search("CARD PAYMENT 0000"))
+        self.assertIsNone(card.account.reference)
+        self.assertEqual("%d/%m/%Y", card.period_date_format)
+
+    def test_a_summary_line_replaces_balance_rows(self) -> None:
+        example = EXAMPLE_PROFILES.read_text(encoding="utf-8")
+        text = example.replace(
+            "opening_balance = '^OPENING BALANCE$'\nclosing_balance = '^CLOSING BALANCE$'\n",
+            "summary = '^SUMMARY (?P<opening>[\\d,.]+) TO (?P<closing>[\\d,.]+)$'\n",
+        )
+        self.assertNotEqual(example, text)
+
+        profile = self.load(text)["example_checking"]
+
+        self.assertIsNone(profile.opening_balance)
+        self.assertIsNotNone(profile.summary)
+
+    def test_rejects_an_unknown_account_kind(self) -> None:
+        text = EXAMPLE_PROFILES.read_text(encoding="utf-8").replace('kind = "checking"', 'kind = "vault"')
+
+        with self.assertRaisesRegex(ValueError, "unknown kind"):
+            self.load(text)
+
     def test_rejects_missing_profiles_table(self) -> None:
         with self.assertRaisesRegex(ValueError, r"\[profiles\]"):
             self.load('title = "none"\n')

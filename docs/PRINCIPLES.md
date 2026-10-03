@@ -64,7 +64,7 @@ Each principle states the rule, how the project applies it today, and what is st
 
 **Rule:** Everything derived can be rebuilt from preserved raw inputs. Raw inputs are kept unchanged, and a failure can be repaired by re-running a step.
 
-**Today:** Original statement files are kept unchanged in the ignored `data/raw/` directory. The database was dropped and rebuilt from them with identical results.
+**Today:** Original statement files are kept unchanged in the ignored `data/raw/` directory. The database has been dropped and rebuilt from them several times, including after profile fixes, so a correction is applied by reloading rather than by editing stored rows.
 
 **Missing:** Backups of the raw files and the database volume, and a retention policy for them, are Stage 4 exit criteria.
 
