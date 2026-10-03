@@ -10,7 +10,7 @@ The repository is public by design. Real data stays on the operator's machine or
 
 ## Current stage
 
-**Stage 0 — foundation, with early Stage 2 work.** A read-only Gmail adapter authenticates locally and lists the IDs of notification emails that match locally configured searches. A statement parser reads PDF statements with generic engines driven by local profiles and checks every result against the balances and totals the statement states. Nothing is stored yet, and the transaction model is not defined. The delivery roadmap lives in [docs/ROADMAP.md](docs/ROADMAP.md).
+**Stages 1 and 2 in progress.** A read-only Gmail adapter authenticates locally and lists the IDs of notification emails that match locally configured searches. A statement parser reads PDF statements with generic engines driven by local profiles and checks every result against the balances and totals the statement states. Reconciled statements are mapped to a core model of accounts, statements, and signed transactions, stored in a local PostgreSQL database, and chained to detect missing statements. The delivery roadmap lives in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Operating principles
 
@@ -29,8 +29,9 @@ The repository is public by design. Real data stays on the operator's machine or
 | Tests | Standard-library `unittest` initially | No extra dependency is needed for the current scope. Revisit when needs justify it. |
 | Email access | Google's Gmail API and OAuth client libraries, read-only scope | Official, maintained libraries; least-privilege access to the mailbox. |
 | Statement PDFs | `pdfplumber` | Word positions recover table columns; opens password-protected files. |
+| Database | PostgreSQL in Docker Compose, `psycopg`, plain SQL migrations | Exact decimals and time zones; runs the same on any host with Docker. |
 | Data boundary | Local files outside Git; synthetic committed fixtures only | Preserves public portfolio value without exposing private records. |
-| Architecture | Evolve from validated use cases | Avoids committing early to a database, cloud provider, or framework. |
+| Architecture | Evolve from validated use cases | Avoids committing early to a cloud provider or framework. |
 
 Decisions that materially affect the project belong in [docs/DECISIONS.md](docs/DECISIONS.md).
 
@@ -42,6 +43,18 @@ Prerequisites: Python 3.13 and [uv](https://docs.astral.sh/uv/).
 uv sync
 uv run python -m unittest discover -s tests
 ```
+
+The local database needs Docker. Copy `.env.example` to `.env`, set a password, then:
+
+```sh
+docker compose up -d
+uv run --env-file .env python -m personal_finance.store migrate
+uv run --env-file .env python -m personal_finance.store load data/raw/statements/...
+uv run --env-file .env python -m personal_finance.store check
+uv run --env-file .env python -m personal_finance.store report
+```
+
+With `.env` loaded, the test suite also runs the database tests against the disposable database it names.
 
 Do not place real exports, statements, credentials, or copied emails in this checkout. Read [docs/DATA_POLICY.md](docs/DATA_POLICY.md) before working with any financial source.
 

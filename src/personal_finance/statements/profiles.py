@@ -14,6 +14,7 @@ from typing import Any
 
 DEFAULT_LINE_TOLERANCE = 3.0
 ACCOUNT_COLUMNS = ("date", "description", "debit", "credit", "balance")
+ACCOUNT_KINDS = ("checking", "demand_deposit", "credit_card")
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,23 @@ class Column:
 
 
 @dataclass(frozen=True)
+class AccountRule:
+    """Which account a statement belongs to, and which of its entries are transfers.
+
+    ``reference`` finds the account number on the statement; only its last four
+    digits are kept. Without it, statements of the profile share one account.
+    ``transfers`` match entry descriptions that move money between the
+    operator's own accounts, such as a card payment from a checking account.
+    """
+
+    institution: str
+    kind: str
+    currency: str
+    reference: re.Pattern[str] | None = None
+    transfers: tuple[re.Pattern[str], ...] = ()
+
+
+@dataclass(frozen=True)
 class ColumnTableProfile:
     """A statement laid out as a table whose columns are found by position."""
 
@@ -49,6 +67,7 @@ class ColumnTableProfile:
     closing_balance: re.Pattern[str]
     columns: tuple[Column, ...]
     line_tolerance: float = DEFAULT_LINE_TOLERANCE
+    account: AccountRule | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +122,9 @@ class LinePatternProfile:
     detect: re.Pattern[str]
     parts: tuple[PartProfile, ...]
     line_tolerance: float = DEFAULT_LINE_TOLERANCE
+    account: AccountRule | None = None
+    period: re.Pattern[str] | None = None
+    period_date_format: str | None = None
 
 
 Profile = ColumnTableProfile | LinePatternProfile
@@ -150,6 +172,7 @@ def _column_table(name: str, reader: "_Reader") -> ColumnTableProfile:
         closing_balance=reader.pattern("closing_balance"),
         columns=columns,
         line_tolerance=reader.number("line_tolerance", DEFAULT_LINE_TOLERANCE),
+        account=_account(reader),
     )
 
 
@@ -166,11 +189,41 @@ def _column(reader: "_Reader") -> Column:
 
 
 def _line_patterns(name: str, reader: "_Reader") -> LinePatternProfile:
+    period = None
+    period_date_format = None
+    if "period" in reader.table:
+        period = reader.pattern("period", groups=("start", "end"))
+        period_date_format = reader.string("period_date_format")
     return LinePatternProfile(
         name=name,
         detect=reader.pattern("detect"),
         parts=tuple(_part(part) for part in reader.tables("parts")),
         line_tolerance=reader.number("line_tolerance", DEFAULT_LINE_TOLERANCE),
+        account=_account(reader),
+        period=period,
+        period_date_format=period_date_format,
+    )
+
+
+def _account(reader: "_Reader") -> AccountRule | None:
+    if "account" not in reader.table:
+        return None
+    account = _Reader(f"{reader.context} account", reader.table["account"])
+    kind = account.string("kind")
+    if kind not in ACCOUNT_KINDS:
+        raise ValueError(f"{account.context} has an unknown kind.")
+    reference = None
+    if "reference" in account.table:
+        reference = account.pattern("reference", groups=("reference",))
+    return AccountRule(
+        institution=account.string("institution"),
+        kind=kind,
+        currency=account.string("currency"),
+        reference=reference,
+        transfers=tuple(
+            account.compile(f"transfers[{index}]", pattern)
+            for index, pattern in enumerate(account.strings("transfers"))
+        ),
     )
 
 
