@@ -10,7 +10,7 @@ from personal_finance.ledger.models import AccountKey, PeriodBalance
 from personal_finance.ledger.statements import UnreconciledStatementError, statement_record
 from statement_fixtures import example_profile, left_aligned, text_words
 from test_statement_column_table import row, statement_words
-from test_statement_line_patterns import DOMESTIC, FOREIGN
+from test_statement_line_patterns import DOMESTIC, FOREIGN, GROUPED
 
 
 def checking_words():
@@ -20,6 +20,11 @@ def checking_words():
 def card_words():
     domestic = [DOMESTIC[0], "BILLING PERIOD 01/03/2026 TO 31/03/2026", *DOMESTIC[1:]]
     return text_words(domestic) + text_words(FOREIGN, page=2)
+
+
+def grouped_card_words():
+    lines = [GROUPED[0], "PERIOD FROM 01/03/2026", "PERIOD TO 31/03/2026", *GROUPED[1:]]
+    return text_words(lines)
 
 
 class TestCheckingStatementRecord(unittest.TestCase):
@@ -57,6 +62,20 @@ class TestCheckingStatementRecord(unittest.TestCase):
         self.assertEqual(
             ["CARD PAYMENT FICTION"],
             [t.description for t in record.transactions if t.is_transfer],
+        )
+
+    def test_dated_transfer_rules_apply_from_their_date(self) -> None:
+        words = (
+            checking_words()
+            + row(75, "23/12", "SAVINGS TRANSFER", debit="0.00")
+            + row(95, "06/01", "SAVINGS TRANSFER", debit="0.00")
+        )
+
+        record = statement_record(words, example_profile("example_checking"))
+
+        self.assertEqual(
+            [(date(2025, 12, 23), False), (date(2026, 1, 6), True)],
+            [(t.occurred_on, t.is_transfer) for t in record.transactions if t.description == "SAVINGS TRANSFER"],
         )
 
     def test_rejects_a_statement_that_does_not_reconcile(self) -> None:
@@ -151,3 +170,12 @@ class TestContinuity(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGroupedCardStatementRecord(unittest.TestCase):
+    def test_reads_a_period_stated_across_lines(self) -> None:
+        record = statement_record(grouped_card_words(), example_profile("example_grouped_card"))
+
+        self.assertEqual((date(2026, 3, 1), date(2026, 3, 31)), (record.period_start, record.period_end))
+        (balance,) = record.balances
+        self.assertEqual((Decimal("80.00"), Decimal("47.50")), (balance.opening, balance.closing))

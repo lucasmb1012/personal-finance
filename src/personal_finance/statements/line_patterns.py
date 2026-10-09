@@ -3,7 +3,8 @@
 Such statements group entries into sections and state totals between them.
 Every total is checked against the entries read since the previous total, so a
 line that no pattern recognizes shows up as a failed check instead of silently
-disappearing.
+disappearing. A leading total states the sum of the entries that follow it,
+up to the next leading total or the end of the part.
 """
 
 import re
@@ -18,7 +19,12 @@ from personal_finance.statements.models import (
     StatementPart,
     Word,
 )
-from personal_finance.statements.profiles import LinePatternProfile, PartProfile, SectionRule
+from personal_finance.statements.profiles import (
+    LinePatternProfile,
+    PartProfile,
+    SectionRule,
+    TotalRule,
+)
 from personal_finance.statements.text import group_lines, parse_amount
 
 DEFAULT_SECTION = SectionRule(name="default", pattern=re.compile(""), billed=True)
@@ -55,10 +61,12 @@ class _PartParser:
         self.since_total = Decimal(0)
         self.since_subtotal = Decimal(0)
         self.totals_sum = Decimal(0)
+        self.group: Check | None = None
 
     def parse(self, texts: list[str]) -> StatementPart:
         for text in texts:
             self._read(text)
+        self._close_group()
         if self.part.totals:
             self.checks.append(Check("entries after the last total", Decimal(0), self.since_total))
         if self.part.grand_total is not None:
@@ -79,7 +87,7 @@ class _PartParser:
                 return
         for index, total in enumerate(self.part.totals):
             if match := total.pattern.search(text):
-                self._total(match, index, total.subtotal)
+                self._total(match, index, total)
                 return
         for pattern in self.part.entry_patterns:
             if match := pattern.search(text):
@@ -93,17 +101,30 @@ class _PartParser:
         if grand is not None and self.grand_total is None and (match := grand.pattern.search(text)):
             self.grand_total = self._amount(match["amount"])
 
-    def _total(self, match: re.Match[str], index: int, subtotal: bool) -> None:
+    def _total(self, match: re.Match[str], index: int, rule: TotalRule) -> None:
         stated = self._amount(match["amount"])
         label = match.groupdict().get("label") or f"#{index}"
-        if subtotal:
+        if rule.subtotal:
             self.checks.append(Check(f"subtotal {label}", stated, self.since_subtotal))
             self.since_subtotal = Decimal(0)
             return
-        self.checks.append(Check(f"total {label}", stated, self.since_total))
+        if rule.leading:
+            if self.group is None and self.since_total:
+                self.checks.append(Check(f"entries before total {label}", Decimal(0), self.since_total))
+            self._close_group()
+            self.group = Check(f"total {label}", stated, Decimal(0))
+        else:
+            self.checks.append(Check(f"total {label}", stated, self.since_total))
         self.totals_sum += stated
         self.since_total = Decimal(0)
         self.since_subtotal = Decimal(0)
+
+    def _close_group(self) -> None:
+        if self.group is None:
+            return
+        self.checks.append(Check(self.group.name, self.group.expected, self.since_total))
+        self.group = None
+        self.since_total = Decimal(0)
 
     def _entry(self, match: re.Match[str]) -> None:
         fields = {name: self._field(name, value) for name, value in match.groupdict().items()}

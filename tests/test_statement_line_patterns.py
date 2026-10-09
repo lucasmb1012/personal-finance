@@ -29,6 +29,21 @@ FOREIGN = [
     "FOREIGN TOTAL 58.60",
 ]
 
+GROUPED = [
+    "EXAMPLE BANK GROUPED CARD STATEMENT",
+    "PREVIOUS AMOUNT DUE 80.00",
+    "GROUP B -37.50",
+    "02/03/26 PAYMENT THANK YOU -80.00",
+    "PAYMENTS TOTAL -80.00",
+    "05/03/26 CAFE EXAMPLE 12.50",
+    "06/03/26 BOOKSHOP FICTION 30.00",
+    "CARD ENDING 0000 TOTAL 42.50",
+    "GROUP C 0.00",
+    "GROUP D 5.00",
+    "31/03/26 MONTHLY FEE 5.00",
+    "AMOUNT DUE 47.50",
+]
+
 
 def failed_checks(lines_by_page: list[list[str]]) -> list[str]:
     words = [word for page, lines in enumerate(lines_by_page, 1) for word in text_words(lines, page)]
@@ -103,3 +118,38 @@ class TestUnrecognizedLines(unittest.TestCase):
         domestic = [line.replace("AMOUNT DUE 242.50", "AMOUNT DUE 999.00") for line in DOMESTIC]
 
         self.assertEqual(["grand total"], failed_checks([domestic, FOREIGN]))
+
+
+def grouped_checks(lines: list[str]) -> list[str]:
+    (part,) = parse_line_patterns(text_words(lines), example_profile("example_grouped_card"))
+    return [check.name for check in part.checks if not check.passed]
+
+
+class TestLeadingTotals(unittest.TestCase):
+    def test_every_check_passes_on_a_complete_statement(self) -> None:
+        (part,) = parse_line_patterns(text_words(GROUPED), example_profile("example_grouped_card"))
+
+        self.assertEqual(
+            [
+                "subtotal PAYMENTS",
+                "subtotal 0000",
+                "total B",
+                "total C",
+                "total D",
+                "entries after the last total",
+                "grand total",
+            ],
+            [check.name for check in part.checks],
+        )
+        self.assertTrue(all(check.passed for check in part.checks))
+        self.assertEqual(4, len(part.entries))
+
+    def test_a_missing_entry_fails_its_group(self) -> None:
+        lines = [line for line in GROUPED if not line.startswith("31/03/26")]
+
+        self.assertEqual(["total D"], grouped_checks(lines))
+
+    def test_entries_before_the_first_leading_total_are_reported(self) -> None:
+        lines = GROUPED[:2] + ["01/03/26 STRAY CHARGE 1.00"] + GROUPED[2:]
+
+        self.assertEqual(["entries before total B"], grouped_checks(lines))

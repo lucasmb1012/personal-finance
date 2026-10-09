@@ -5,6 +5,7 @@ Connection settings come from the standard PostgreSQL environment variables
 """
 
 from collections import defaultdict
+from collections.abc import Mapping
 from importlib import resources
 
 import psycopg
@@ -12,6 +13,7 @@ from psycopg.types.json import Jsonb
 
 from personal_finance.ledger.categories import CategoryRule, categorize
 from personal_finance.ledger.models import AccountKey, PeriodBalance, StatementRecord
+from personal_finance.statements.profiles import AccountRule
 
 MIGRATIONS_PACKAGE = "personal_finance.store.migrations"
 
@@ -130,6 +132,30 @@ def apply_categories(connection: psycopg.Connection, rules: tuple[CategoryRule, 
         ]
         with connection.cursor() as cursor:
             cursor.executemany("UPDATE transactions SET category = %s WHERE id = %s", changes)
+    return len(changes)
+
+
+def apply_transfers(connection: psycopg.Connection, rules: Mapping[str, AccountRule]) -> int:
+    """Recompute every transaction's transfer flag from its statement profile's rule.
+
+    Return how many changed. Every stored profile needs a rule, so a missing
+    profile fails instead of leaving stale flags behind.
+    """
+    with connection.transaction():
+        rows = connection.execute(
+            "SELECT t.id, s.profile, t.description, t.occurred_on, t.is_transfer"
+            " FROM transactions t JOIN statements s ON s.id = t.statement_id"
+        ).fetchall()
+        missing = sorted({profile for _, profile, _, _, _ in rows if profile not in rules})
+        if missing:
+            raise ValueError(f"No account rule for profiles: {', '.join(missing)}.")
+        changes = [
+            (flag, identifier)
+            for identifier, profile, description, occurred_on, current in rows
+            if (flag := rules[profile].is_transfer(description, occurred_on)) != current
+        ]
+        with connection.cursor() as cursor:
+            cursor.executemany("UPDATE transactions SET is_transfer = %s WHERE id = %s", changes)
     return len(changes)
 
 

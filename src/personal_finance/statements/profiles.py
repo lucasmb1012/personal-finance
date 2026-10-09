@@ -9,6 +9,7 @@ import re
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,24 @@ class Column:
 
 
 @dataclass(frozen=True)
+class TransferRule:
+    """Entries whose description matches ``pattern`` move money between own accounts.
+
+    With ``since``, only entries on or after that date are transfers. A card
+    payment, for instance, is a transfer only once the card's own statements
+    are stored; before that, it is the only record of the card's spending.
+    """
+
+    pattern: re.Pattern[str]
+    since: date | None = None
+
+    def matches(self, description: str, occurred_on: date) -> bool:
+        if self.since is not None and occurred_on < self.since:
+            return False
+        return self.pattern.search(description) is not None
+
+
+@dataclass(frozen=True)
 class AccountRule:
     """Which account a statement belongs to, and which of its entries are transfers.
 
@@ -50,7 +69,10 @@ class AccountRule:
     currency: str
     reference: re.Pattern[str] | None = None
     aliases: Mapping[str, str] = field(default_factory=dict)
-    transfers: tuple[re.Pattern[str], ...] = ()
+    transfers: tuple[TransferRule, ...] = ()
+
+    def is_transfer(self, description: str, occurred_on: date) -> bool:
+        return any(rule.matches(description, occurred_on) for rule in self.transfers)
 
 
 @dataclass(frozen=True)
@@ -90,10 +112,15 @@ class SectionRule:
 
 @dataclass(frozen=True)
 class TotalRule:
-    """A line stating the total of the billed entries since the previous total."""
+    """A line stating the total of the billed entries since the previous total.
+
+    A ``leading`` total instead states the total of the billed entries that
+    follow it, up to the next leading total or the end of the part.
+    """
 
     pattern: re.Pattern[str]
     subtotal: bool
+    leading: bool = False
 
 
 @dataclass(frozen=True)
@@ -240,10 +267,24 @@ def _account(reader: "_Reader") -> AccountRule | None:
         reference=reference,
         aliases={key: aliases.string(key) for key in aliases.table},
         transfers=tuple(
-            account.compile(f"transfers[{index}]", pattern)
-            for index, pattern in enumerate(account.strings("transfers"))
+            _transfer(account, index, item)
+            for index, item in enumerate(account.table.get("transfers", []))
         ),
     )
+
+
+def _transfer(account: "_Reader", index: int, item: Any) -> TransferRule:
+    """Read a transfer rule: a pattern string, or a table with ``pattern`` and ``since``."""
+    key = f"transfers[{index}]"
+    if isinstance(item, str) and item:
+        return TransferRule(account.compile(key, item))
+    if not isinstance(item, dict):
+        raise ValueError(f"{account.context} needs {key!r} to be a pattern or a table.")
+    rule = _Reader(f"{account.context} {key}", item)
+    since = rule.table.get("since")
+    if since is not None and not (isinstance(since, date) and not hasattr(since, "hour")):
+        raise ValueError(f"{rule.context} needs 'since' to be a date.")
+    return TransferRule(rule.pattern("pattern"), since)
 
 
 def _part(reader: "_Reader") -> PartProfile:
@@ -285,16 +326,21 @@ def _part(reader: "_Reader") -> PartProfile:
             )
             for section in reader.tables("sections")
         ),
-        totals=tuple(
-            TotalRule(
-                pattern=total.pattern("pattern", groups=("amount",)),
-                subtotal=total.boolean("subtotal", False),
-            )
-            for total in reader.tables("totals")
-        ),
+        totals=tuple(_total(total) for total in reader.tables("totals")),
         values={key: values.pattern(key, groups=("amount",)) for key in values.table},
         grand_total=grand_total,
     )
+
+
+def _total(reader: "_Reader") -> TotalRule:
+    rule = TotalRule(
+        pattern=reader.pattern("pattern", groups=("amount",)),
+        subtotal=reader.boolean("subtotal", False),
+        leading=reader.boolean("leading", False),
+    )
+    if rule.subtotal and rule.leading:
+        raise ValueError(f"{reader.context} cannot be both a subtotal and a leading total.")
+    return rule
 
 
 def _amount_format(reader: "_Reader") -> AmountFormat:

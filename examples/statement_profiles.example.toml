@@ -4,6 +4,8 @@
 #
 # Patterns are Python regular expressions matched against one text line, with
 # the line's words joined by single spaces. Use literal (single-quoted) strings.
+# The detect and card period patterns are matched against the whole text, one
+# line per row, so they may span lines.
 
 # An account statement laid out as a table. Each word is assigned to the first
 # column whose range contains the chosen edge of the word: "x0" (left) for
@@ -36,13 +38,16 @@ columns = [
 # The account a statement belongs to, used when statements are stored.
 # Institutions are pseudonyms. Only the last four digits of the reference are
 # kept. Transfer patterns mark entries that move money between the operator's
-# own accounts, which are neither income nor spending.
+# own accounts, which are neither income nor spending. A table with a "since"
+# date limits a pattern to entries on or after that date, for example card
+# payments made after the card's own statements start being stored. Re-run the
+# store's transfers command after changing these rules.
 [profiles.example_checking.account]
 institution = "Example Bank"
 kind = "checking"
 currency = "EUR"
 reference = '^ACCOUNT NUMBER (?P<reference>[\d-]+)$'
-transfers = ['^CARD PAYMENT']
+transfers = ['^CARD PAYMENT', { pattern = '^SAVINGS TRANSFER', since = 2026-01-01 }]
 
 # A card statement whose entries are single lines. Totals are checked against
 # the billed entries since the previous total; a subtotal is checked against
@@ -98,3 +103,36 @@ date_fields = { date = "%d/%m/%y" }
 totals = [
     { pattern = '^FOREIGN TOTAL (?P<amount>-?[\d,]+\.\d\d)$' },
 ]
+
+# A card statement that states each group's total before the group's entries.
+# A leading total is checked against the billed entries up to the next leading
+# total or the end of the part. Its period dates sit on separate lines.
+[profiles.example_grouped_card]
+engine = "line_patterns"
+detect = '^EXAMPLE BANK GROUPED CARD STATEMENT$'
+period = '^PERIOD FROM (?P<start>\d\d/\d\d/\d{4})$\n^PERIOD TO (?P<end>\d\d/\d\d/\d{4})$'
+period_date_format = "%d/%m/%Y"
+
+[profiles.example_grouped_card.account]
+institution = "Example Bank"
+kind = "credit_card"
+currency = "EUR"
+transfers = ['^PAYMENT THANK YOU']
+
+[[profiles.example_grouped_card.parts]]
+name = "domestic"
+currency = "EUR"
+start = '^EXAMPLE BANK GROUPED CARD STATEMENT$'
+amount_format = { thousands = ",", decimal = "." }
+entry_patterns = [
+    '^(?P<date>\d\d/\d\d/\d\d) (?P<description>.+?) (?P<amount>-?[\d,]+\.\d\d)$',
+]
+amount_field = "amount"
+date_fields = { date = "%d/%m/%y" }
+totals = [
+    { pattern = '^(?P<label>PAYMENTS) TOTAL (?P<amount>-?[\d,]+\.\d\d)$', subtotal = true },
+    { pattern = '^CARD ENDING (?P<label>\d{4}) TOTAL (?P<amount>-?[\d,]+\.\d\d)$', subtotal = true },
+    { pattern = '^GROUP (?P<label>[A-Z]) (?P<amount>-?[\d,]+\.\d\d)$', leading = true },
+]
+values = { previous_billed = '^PREVIOUS AMOUNT DUE (?P<amount>-?[\d,]+\.\d\d)$' }
+grand_total = { pattern = '^AMOUNT DUE (?P<amount>-?[\d,]+\.\d\d)$', plus = ["previous_billed"] }

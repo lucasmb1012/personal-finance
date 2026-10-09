@@ -85,10 +85,6 @@ def _require_passed(checks: Sequence[Check]) -> None:
         raise UnreconciledStatementError(f"Failed checks: {', '.join(failed)}.")
 
 
-def _is_transfer(description: str, rule: AccountRule) -> bool:
-    return any(pattern.search(description) for pattern in rule.transfers)
-
-
 def _account_record(
     statement: AccountStatement,
     profile_name: str,
@@ -108,7 +104,7 @@ def _account_record(
                 description=entry.description,
                 amount=amount,
                 currency=rule.currency,
-                is_transfer=_is_transfer(entry.description, rule),
+                is_transfer=rule.is_transfer(entry.description, entry.date),
                 balance_after=entry.balance,
                 details=dict(entry.extra),
             )
@@ -127,11 +123,11 @@ def _account_record(
 def _card_period(lines: Sequence[Line], profile: LinePatternProfile) -> tuple[date, date]:
     if profile.period is None or profile.period_date_format is None:
         raise ValueError(f"Profile {profile.name!r} has no statement period pattern.")
-    for line in lines:
-        if match := profile.period.search(line.text):
-            start = datetime.strptime(match["start"], profile.period_date_format).date()
-            end = datetime.strptime(match["end"], profile.period_date_format).date()
-            return start, end
+    # Searched across lines, since some statements state each date on its own line.
+    if match := profile.period.search("\n".join(line.text for line in lines)):
+        start = datetime.strptime(match["start"], profile.period_date_format).date()
+        end = datetime.strptime(match["end"], profile.period_date_format).date()
+        return start, end
     raise StatementFormatError(f"Profile {profile.name!r} found no statement period.")
 
 
@@ -163,7 +159,7 @@ def _card_transactions(parts: Sequence[StatementPart], rule: AccountRule) -> tup
                     description=description,
                     amount=-entry.amount,
                     currency=part.currency,
-                    is_transfer=_is_transfer(description, rule),
+                    is_transfer=rule.is_transfer(description, occurred_on),
                     installment=_integer(entry.fields.get("installment")),
                     installments=_integer(entry.fields.get("installments")),
                     details={
