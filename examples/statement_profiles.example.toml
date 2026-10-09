@@ -4,6 +4,8 @@
 #
 # Patterns are Python regular expressions matched against one text line, with
 # the line's words joined by single spaces. Use literal (single-quoted) strings.
+# The detect and card period patterns are matched against the whole text, one
+# line per row, so they may span lines.
 
 # An account statement laid out as a table. Each word is assigned to the first
 # column whose range contains the chosen edge of the word: "x0" (left) for
@@ -98,3 +100,36 @@ date_fields = { date = "%d/%m/%y" }
 totals = [
     { pattern = '^FOREIGN TOTAL (?P<amount>-?[\d,]+\.\d\d)$' },
 ]
+
+# A card statement that states each group's total before the group's entries.
+# A leading total is checked against the billed entries up to the next leading
+# total or the end of the part. Its period dates sit on separate lines.
+[profiles.example_grouped_card]
+engine = "line_patterns"
+detect = '^EXAMPLE BANK GROUPED CARD STATEMENT$'
+period = '^PERIOD FROM (?P<start>\d\d/\d\d/\d{4})$\n^PERIOD TO (?P<end>\d\d/\d\d/\d{4})$'
+period_date_format = "%d/%m/%Y"
+
+[profiles.example_grouped_card.account]
+institution = "Example Bank"
+kind = "credit_card"
+currency = "EUR"
+transfers = ['^PAYMENT THANK YOU']
+
+[[profiles.example_grouped_card.parts]]
+name = "domestic"
+currency = "EUR"
+start = '^EXAMPLE BANK GROUPED CARD STATEMENT$'
+amount_format = { thousands = ",", decimal = "." }
+entry_patterns = [
+    '^(?P<date>\d\d/\d\d/\d\d) (?P<description>.+?) (?P<amount>-?[\d,]+\.\d\d)$',
+]
+amount_field = "amount"
+date_fields = { date = "%d/%m/%y" }
+totals = [
+    { pattern = '^(?P<label>PAYMENTS) TOTAL (?P<amount>-?[\d,]+\.\d\d)$', subtotal = true },
+    { pattern = '^CARD ENDING (?P<label>\d{4}) TOTAL (?P<amount>-?[\d,]+\.\d\d)$', subtotal = true },
+    { pattern = '^GROUP (?P<label>[A-Z]) (?P<amount>-?[\d,]+\.\d\d)$', leading = true },
+]
+values = { previous_billed = '^PREVIOUS AMOUNT DUE (?P<amount>-?[\d,]+\.\d\d)$' }
+grand_total = { pattern = '^AMOUNT DUE (?P<amount>-?[\d,]+\.\d\d)$', plus = ["previous_billed"] }

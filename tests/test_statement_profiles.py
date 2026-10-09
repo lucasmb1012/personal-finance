@@ -105,6 +105,13 @@ class TestLoadProfiles(unittest.TestCase):
             self.load(broken)
 
 
+    def test_rejects_a_total_that_is_both_subtotal_and_leading(self) -> None:
+        example = EXAMPLE_PROFILES.read_text(encoding="utf-8")
+        broken = example.replace("leading = true", "leading = true, subtotal = true")
+
+        with self.assertRaisesRegex(ValueError, "both a subtotal and a leading total"):
+            self.load(broken)
+
 class TestParseAmount(unittest.TestCase):
     def test_reads_both_separator_conventions_exactly(self) -> None:
         self.assertEqual(Decimal("1234567"), parse_amount("1.234.567", DOTS))

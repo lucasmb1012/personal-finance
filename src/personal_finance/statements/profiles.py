@@ -90,10 +90,15 @@ class SectionRule:
 
 @dataclass(frozen=True)
 class TotalRule:
-    """A line stating the total of the billed entries since the previous total."""
+    """A line stating the total of the billed entries since the previous total.
+
+    A ``leading`` total instead states the total of the billed entries that
+    follow it, up to the next leading total or the end of the part.
+    """
 
     pattern: re.Pattern[str]
     subtotal: bool
+    leading: bool = False
 
 
 @dataclass(frozen=True)
@@ -285,16 +290,21 @@ def _part(reader: "_Reader") -> PartProfile:
             )
             for section in reader.tables("sections")
         ),
-        totals=tuple(
-            TotalRule(
-                pattern=total.pattern("pattern", groups=("amount",)),
-                subtotal=total.boolean("subtotal", False),
-            )
-            for total in reader.tables("totals")
-        ),
+        totals=tuple(_total(total) for total in reader.tables("totals")),
         values={key: values.pattern(key, groups=("amount",)) for key in values.table},
         grand_total=grand_total,
     )
+
+
+def _total(reader: "_Reader") -> TotalRule:
+    rule = TotalRule(
+        pattern=reader.pattern("pattern", groups=("amount",)),
+        subtotal=reader.boolean("subtotal", False),
+        leading=reader.boolean("leading", False),
+    )
+    if rule.subtotal and rule.leading:
+        raise ValueError(f"{reader.context} cannot be both a subtotal and a leading total.")
+    return rule
 
 
 def _amount_format(reader: "_Reader") -> AmountFormat:

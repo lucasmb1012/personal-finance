@@ -127,11 +127,11 @@ def _account_record(
 def _card_period(lines: Sequence[Line], profile: LinePatternProfile) -> tuple[date, date]:
     if profile.period is None or profile.period_date_format is None:
         raise ValueError(f"Profile {profile.name!r} has no statement period pattern.")
-    for line in lines:
-        if match := profile.period.search(line.text):
-            start = datetime.strptime(match["start"], profile.period_date_format).date()
-            end = datetime.strptime(match["end"], profile.period_date_format).date()
-            return start, end
+    # Searched across lines, since some statements state each date on its own line.
+    if match := profile.period.search("\n".join(line.text for line in lines)):
+        start = datetime.strptime(match["start"], profile.period_date_format).date()
+        end = datetime.strptime(match["end"], profile.period_date_format).date()
+        return start, end
     raise StatementFormatError(f"Profile {profile.name!r} found no statement period.")
 
 

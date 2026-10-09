@@ -10,7 +10,7 @@ from personal_finance.ledger.models import AccountKey, PeriodBalance
 from personal_finance.ledger.statements import UnreconciledStatementError, statement_record
 from statement_fixtures import example_profile, left_aligned, text_words
 from test_statement_column_table import row, statement_words
-from test_statement_line_patterns import DOMESTIC, FOREIGN
+from test_statement_line_patterns import DOMESTIC, FOREIGN, GROUPED
 
 
 def checking_words():
@@ -20,6 +20,11 @@ def checking_words():
 def card_words():
     domestic = [DOMESTIC[0], "BILLING PERIOD 01/03/2026 TO 31/03/2026", *DOMESTIC[1:]]
     return text_words(domestic) + text_words(FOREIGN, page=2)
+
+
+def grouped_card_words():
+    lines = [GROUPED[0], "PERIOD FROM 01/03/2026", "PERIOD TO 31/03/2026", *GROUPED[1:]]
+    return text_words(lines)
 
 
 class TestCheckingStatementRecord(unittest.TestCase):
@@ -151,3 +156,12 @@ class TestContinuity(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGroupedCardStatementRecord(unittest.TestCase):
+    def test_reads_a_period_stated_across_lines(self) -> None:
+        record = statement_record(grouped_card_words(), example_profile("example_grouped_card"))
+
+        self.assertEqual((date(2026, 3, 1), date(2026, 3, 31)), (record.period_start, record.period_end))
+        (balance,) = record.balances
+        self.assertEqual((Decimal("80.00"), Decimal("47.50")), (balance.opening, balance.closing))
