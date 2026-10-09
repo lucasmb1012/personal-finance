@@ -64,6 +64,20 @@ class TestCheckingStatementRecord(unittest.TestCase):
             [t.description for t in record.transactions if t.is_transfer],
         )
 
+    def test_dated_transfer_rules_apply_from_their_date(self) -> None:
+        words = (
+            checking_words()
+            + row(75, "23/12", "SAVINGS TRANSFER", debit="0.00")
+            + row(95, "06/01", "SAVINGS TRANSFER", debit="0.00")
+        )
+
+        record = statement_record(words, example_profile("example_checking"))
+
+        self.assertEqual(
+            [(date(2025, 12, 23), False), (date(2026, 1, 6), True)],
+            [(t.occurred_on, t.is_transfer) for t in record.transactions if t.description == "SAVINGS TRANSFER"],
+        )
+
     def test_rejects_a_statement_that_does_not_reconcile(self) -> None:
         words = checking_words() + row(85, "02/01", "UNSTATED FEE", debit="1.00")
 

@@ -42,7 +42,9 @@ class TestLoadProfiles(unittest.TestCase):
         checking, card = profiles["example_checking"].account, profiles["example_card"]
 
         self.assertEqual(("Example Bank", "checking", "EUR"), (checking.institution, checking.kind, checking.currency))
-        self.assertTrue(checking.transfers[0].search("CARD PAYMENT 0000"))
+        self.assertTrue(checking.is_transfer("CARD PAYMENT 0000", date(2025, 1, 1)))
+        self.assertFalse(checking.is_transfer("SAVINGS TRANSFER", date(2025, 12, 31)))
+        self.assertTrue(checking.is_transfer("SAVINGS TRANSFER", date(2026, 1, 1)))
         self.assertIsNone(card.account.reference)
         self.assertEqual("%d/%m/%Y", card.period_date_format)
 
@@ -110,6 +112,13 @@ class TestLoadProfiles(unittest.TestCase):
         broken = example.replace("leading = true", "leading = true, subtotal = true")
 
         with self.assertRaisesRegex(ValueError, "both a subtotal and a leading total"):
+            self.load(broken)
+
+    def test_rejects_a_transfer_since_that_is_not_a_date(self) -> None:
+        example = EXAMPLE_PROFILES.read_text(encoding="utf-8")
+        broken = example.replace("since = 2026-01-01", "since = '2026-01-01'")
+
+        with self.assertRaisesRegex(ValueError, "'since' to be a date"):
             self.load(broken)
 
 class TestParseAmount(unittest.TestCase):

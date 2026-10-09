@@ -51,6 +51,7 @@ docker compose up -d
 uv run --env-file .env python -m personal_finance.store migrate
 uv run --env-file .env python -m personal_finance.store load data/raw/statements/...
 uv run --env-file .env python -m personal_finance.store check
+uv run --env-file .env python -m personal_finance.store transfers
 uv run --env-file .env python -m personal_finance.store categorize
 uv run --env-file .env python -m personal_finance.store report --by category
 ```

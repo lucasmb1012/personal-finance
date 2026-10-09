@@ -185,3 +185,19 @@ Profiles hold the institution's titles, column positions, patterns, and number f
 **Alternatives considered:** Matching rules inside PostgreSQL would apply them automatically on load, but its regular expression dialect differs from Python's and the rules would be harder to test. Machine-learned classification would need labelled data that does not exist yet, and its results would be harder to explain.
 
 **Consequences:** Categories are as good as the local rules; uncategorized transactions are reported as such. Manual per-transaction overrides are not supported yet. Running `categorize` after each load keeps categories current.
+
+## 2026-10-08 — One statement per account, period end, and profile
+
+**Decision:** A stored statement is unique per account, period end, and profile instead of per account and period end. Migration `0003_statement_identity` replaces the constraint.
+
+**Rationale:** One institution sends a card's national and international statements as two documents for the same period, each read by its own profile. Both belong to the same card account and carry balances in different currencies. Treating the international part as a separate account would split one card in two in every report, and merging both files into one record at load time would need pairing logic for periods that have only one of them.
+
+**Consequences:** A second copy of the same document is still rejected, because it uses the same profile. A copy read by a different profile would be accepted, but its balances would overlap the original's in the same currency, and the continuity check reports that as an overlap.
+
+## 2026-10-08 — Transfer rules with a start date, recomputed on demand
+
+**Decision:** A transfer rule in the local profile may be a table with a pattern and a `since` date; the pattern then marks transfers only on or after that date. A `store transfers` command recomputes every stored transaction's transfer flag from the current profiles in one database transaction, as `store categorize` does for categories.
+
+**Rationale:** A card payment from a checking account is a transfer only while the card's own statements list the purchases it pays. For earlier periods, the payment is the only record of that spending, so marking every payment as a transfer would erase years of spending, and marking none would count recent spending twice. Recomputing flags avoids dropping and reloading the database each time a transfer rule changes.
+
+**Consequences:** The `since` date is the day after the end of the last billing period that no loaded statement covers, set per currency. Every stored profile must still exist when flags are recomputed; otherwise the command fails rather than leaving stale flags. Run `store transfers` after changing transfer rules, then `store categorize`.

@@ -4,6 +4,7 @@ Usage:
     python -m personal_finance.store migrate
     python -m personal_finance.store load [--profiles PATH] FILE...
     python -m personal_finance.store check
+    python -m personal_finance.store transfers [--profiles PATH]
     python -m personal_finance.store categorize [--rules PATH]
     python -m personal_finance.store report [--months N] [--by account|category]
 
@@ -28,6 +29,7 @@ from personal_finance.statements.pdf import read_words
 from personal_finance.statements.profiles import load_profiles
 from personal_finance.store.database import (
     apply_categories,
+    apply_transfers,
     connect,
     migrate,
     period_balances,
@@ -45,6 +47,8 @@ def main(argv: list[str] | None = None) -> int:
     load.add_argument("--profiles", type=Path, default=DEFAULT_PROFILES)
     load.add_argument("files", nargs="+", type=Path)
     commands.add_parser("check")
+    transfers = commands.add_parser("transfers")
+    transfers.add_argument("--profiles", type=Path, default=DEFAULT_PROFILES)
     categorize = commands.add_parser("categorize")
     categorize.add_argument("--rules", type=Path, default=DEFAULT_RULES)
     report = commands.add_parser("report")
@@ -61,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
             return _load(connection, arguments.profiles, arguments.files)
         if arguments.command == "check":
             return _check(connection)
+        if arguments.command == "transfers":
+            return _transfers(connection, arguments.profiles)
         if arguments.command == "categorize":
             return _categorize(connection, arguments.rules)
         if arguments.by == "category":
@@ -102,6 +108,16 @@ def _check(connection) -> int:
                 f"{issue.current.period_start}..{issue.current.period_end} opens {issue.current.opening}"
             )
     return 1 if problems else 0
+
+
+def _transfers(connection, profiles_path: Path) -> int:
+    rules = {
+        name: profile.account
+        for name, profile in load_profiles(profiles_path).items()
+        if profile.account is not None
+    }
+    print(f"Changed {apply_transfers(connection, rules)} transfer flags.")
+    return 0
 
 
 def _categorize(connection, rules_path: Path) -> int:

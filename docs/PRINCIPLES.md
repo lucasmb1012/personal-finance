@@ -8,7 +8,7 @@ Each principle states the rule, how the project applies it today, and what is st
 
 **Rule:** Processing the same input twice leaves the same state as processing it once. Re-running a step is always safe.
 
-**Today:** Statements are keyed by the SHA-256 of their source file, so a second load stores nothing. An account can hold only one statement per period end, which also rejects a different copy of the same statement. Migrations are recorded in `schema_migrations` and applied once.
+**Today:** Statements are keyed by the SHA-256 of their source file, so a second load stores nothing. An account can hold only one statement per period end and profile, which also rejects a different copy of the same statement; a card whose currencies arrive as separate documents stores one statement per currency document. Migrations are recorded in `schema_migrations` and applied once.
 
 **Missing:** Notifications will be keyed by their message identifier when they are ingested.
 
@@ -20,7 +20,7 @@ Each principle states the rule, how the project applies it today, and what is st
 
 Categories are recomputed from the local rules on every run, so the same rules always give the same categories.
 
-**Missing:** Stored records do not say which version of a profile produced them, so a profile change, such as a new transfer pattern, is applied only by reloading. A profile fingerprint per statement would make that visible.
+**Missing:** Stored records do not say which version of a profile produced them. Transfer rule changes are applied with `store transfers` and category rule changes with `store categorize`; any other profile change is applied only by reloading. A profile fingerprint per statement would make that visible.
 
 ## 3. Incrementality
 

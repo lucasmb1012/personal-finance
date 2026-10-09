@@ -7,6 +7,7 @@ whose public schema they drop and recreate. Run them with
 
 import os
 import unittest
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 
@@ -14,7 +15,7 @@ from personal_finance.ledger.categories import load_category_rules
 from personal_finance.ledger.statements import statement_record
 from statement_fixtures import example_profile
 from test_categories import EXAMPLE_RULES
-from test_ledger import card_words, checking_words
+from test_ledger import card_words, checking_words, grouped_card_words
 
 TEST_DATABASE = os.environ.get("PERSONAL_FINANCE_TEST_DATABASE")
 
@@ -29,9 +30,13 @@ class TestDatabase(unittest.TestCase):
         if TEST_DATABASE == os.environ.get("PGDATABASE"):
             self.fail("The test database must not be the ledger database.")
         self.database = database
+        self.psycopg = psycopg
         self.connection = psycopg.connect(dbname=TEST_DATABASE, autocommit=True)
         self.connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
-        self.assertEqual(["0001_ledger", "0002_categories"], database.migrate(self.connection))
+        self.assertEqual(
+            ["0001_ledger", "0002_categories", "0003_statement_identity"],
+            database.migrate(self.connection),
+        )
 
     def tearDown(self) -> None:
         self.connection.close()
@@ -88,6 +93,29 @@ class TestDatabase(unittest.TestCase):
             [("food:restaurants", Decimal("-12.50")), ("uncategorized", Decimal("-230.00"))],
             rows,
         )
+
+
+    def test_one_period_may_hold_one_statement_per_profile(self) -> None:
+        card = statement_record(card_words(), example_profile("example_card"))
+        grouped = statement_record(grouped_card_words(), example_profile("example_grouped_card"))
+        copy = replace(card, profile="example_card")
+
+        self.assertTrue(self.database.save_statement(self.connection, card, "card.pdf", "c" * 64))
+        self.assertTrue(self.database.save_statement(self.connection, grouped, "grouped.pdf", "d" * 64))
+        with self.assertRaises(self.psycopg.errors.UniqueViolation):
+            self.database.save_statement(self.connection, copy, "card-copy.pdf", "e" * 64)
+
+    def test_transfer_flags_are_recomputed_from_profile_rules(self) -> None:
+        card = statement_record(card_words(), example_profile("example_card"))
+        self.database.save_statement(self.connection, card, "card.pdf", "c" * 64)
+        rule = example_profile("example_card").account
+        dated = replace(rule, transfers=(replace(rule.transfers[0], since=date(2026, 3, 3)),))
+
+        self.assertEqual(1, self.database.apply_transfers(self.connection, {"example_card": dated}))
+        self.assertEqual(0, self.database.apply_transfers(self.connection, {"example_card": dated}))
+        self.assertEqual(1, self.database.apply_transfers(self.connection, {"example_card": rule}))
+        with self.assertRaisesRegex(ValueError, "example_card"):
+            self.database.apply_transfers(self.connection, {})
 
 
 if __name__ == "__main__":

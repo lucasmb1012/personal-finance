@@ -38,13 +38,16 @@ columns = [
 # The account a statement belongs to, used when statements are stored.
 # Institutions are pseudonyms. Only the last four digits of the reference are
 # kept. Transfer patterns mark entries that move money between the operator's
-# own accounts, which are neither income nor spending.
+# own accounts, which are neither income nor spending. A table with a "since"
+# date limits a pattern to entries on or after that date, for example card
+# payments made after the card's own statements start being stored. Re-run the
+# store's transfers command after changing these rules.
 [profiles.example_checking.account]
 institution = "Example Bank"
 kind = "checking"
 currency = "EUR"
 reference = '^ACCOUNT NUMBER (?P<reference>[\d-]+)$'
-transfers = ['^CARD PAYMENT']
+transfers = ['^CARD PAYMENT', { pattern = '^SAVINGS TRANSFER', since = 2026-01-01 }]
 
 # A card statement whose entries are single lines. Totals are checked against
 # the billed entries since the previous total; a subtotal is checked against

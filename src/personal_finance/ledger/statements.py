@@ -85,10 +85,6 @@ def _require_passed(checks: Sequence[Check]) -> None:
         raise UnreconciledStatementError(f"Failed checks: {', '.join(failed)}.")
 
 
-def _is_transfer(description: str, rule: AccountRule) -> bool:
-    return any(pattern.search(description) for pattern in rule.transfers)
-
-
 def _account_record(
     statement: AccountStatement,
     profile_name: str,
@@ -108,7 +104,7 @@ def _account_record(
                 description=entry.description,
                 amount=amount,
                 currency=rule.currency,
-                is_transfer=_is_transfer(entry.description, rule),
+                is_transfer=rule.is_transfer(entry.description, entry.date),
                 balance_after=entry.balance,
                 details=dict(entry.extra),
             )
@@ -163,7 +159,7 @@ def _card_transactions(parts: Sequence[StatementPart], rule: AccountRule) -> tup
                     description=description,
                     amount=-entry.amount,
                     currency=part.currency,
-                    is_transfer=_is_transfer(description, rule),
+                    is_transfer=rule.is_transfer(description, occurred_on),
                     installment=_integer(entry.fields.get("installment")),
                     installments=_integer(entry.fields.get("installments")),
                     details={

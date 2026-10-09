@@ -10,7 +10,7 @@ These guidelines describe how transactions discovered from bank notification ema
 | Bank A account statements | Surveyed on 2026-09-26 |
 | Bank B account statements | Surveyed on 2026-10-03 |
 | Bank B notification emails | Inventoried by headers on 2026-10-03; content pending |
-| Bank B card statements | Not sent by email; pending |
+| Bank B card statements | Obtained from the institution and loaded on 2026-10-08 |
 
 ## Payment instruments
 
@@ -93,9 +93,21 @@ Bank B sends checking and demand deposit account statements as password-protecte
 - **Re-sent statements:** a statement can be sent again as a summary without entries for the same period. It fails reconciliation and is not loaded.
 - **Several accounts:** one operator can hold several checking and demand deposit accounts over time, each identified by its number.
 
-- **Card activity:** card statements are not sent by email; only per-purchase notifications are, and the operator's alert settings do not change that. A mailbox inventory of every Bank B message with an attachment found account statements and loan communications only. Card statements must be obtained from the institution, and until then card payments debited from the checking account are the only record of card spending.
+- **Card activity:** card statements are not sent by email; only per-purchase notifications are, and the operator's alert settings do not change that. A mailbox inventory of every Bank B message with an attachment found account statements and loan communications only. Card statements must be obtained from the institution; for periods before the earliest one obtained, card payments debited from the checking account are the only record of card spending.
 
 Every Bank B account statement in the mailbox reconciled, except the summary-only copy, and each account chained without breaks. Transfers between Bank A and Bank B accounts cancel out quarter by quarter where both sides have statements.
+
+### Bank B card statements
+
+Card statements were downloaded from the institution, which offers about a year of national statements and fewer international ones. They are not password-protected.
+
+- **One document per currency:** the national and the international statement of the same card and period are separate files with different layouts, so each has its own profile and both are stored as statements of one card account.
+- **Totals before entries:** each group of entries (payments and purchases, voluntary products, and charges and taxes) states its total in a header line before its entries, while the payments, the card's purchases, and the installments also state subtotals after their entries. The amount due is the previous amount due plus the group totals.
+- **International layout:** payments and purchases each have a leading total, the card's purchases close with a subtotal, and a separate group lists charges such as the dollar debt moved to local currency. Payment and debt-transfer entries have no merchant reference or country.
+- **Period on two lines:** the international statement states the start and end of its billing period on separate lines.
+- **Card payments as transfers:** card payments debited from the checking account are transfers only from the first billing period that a loaded statement covers, separately for each currency. Earlier payments settle purchases that no loaded statement lists, so they remain the record of that spending.
+
+All thirteen national and eight international statements reconciled and chained without breaks.
 
 ### Loading into the ledger
 
